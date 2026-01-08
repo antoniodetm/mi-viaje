@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Itinerario por Días - Auto-guardado</title>
+    <style>
+        body { 
+            font-family: 'Segoe UI', Arial, sans-serif; 
+            background-color: #f4f7f6; 
+            margin: 0; padding: 20px;
+            display: flex; flex-direction: column; align-items: center; 
+        }
+        .container { 
+            background: white; padding: 20px; border-radius: 8px; 
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1); 
+            width: 95%; max-width: 1400px; 
+        }
+        
+        /* Estilo para el separador de DÍA */
+        .bloque-dia {
+            margin: 30px 0 15px 0;
+            background: #2c3e50;
+            color: white;
+            padding: 10px 15px;
+            border-radius: 5px;
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+        .bloque-dia h3 { margin: 0; flex-grow: 1; outline: none; }
+        
+        .bloque { 
+            margin-bottom: 20px;
+            border: 1px solid #ddd; 
+            border-radius: 5px; 
+            overflow: hidden; 
+            background: white; 
+            position: relative;
+        }
+        
+        .controls-left { 
+            position: absolute; left: 0; top: 0; height: 45px;
+            display: flex; z-index: 10;
+            border-right: 1px solid rgba(0,0,0,0.1);
+            background: rgba(0,0,0,0.03);
+        }
+
+        .btn-ctrl {
+            border: none; background: transparent; cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            font-weight: bold; height: 100%; width: 35px;
+            border-right: 1px solid rgba(0,0,0,0.05);
+        }
+        
+        .dia-delete { color: #ff4d4d; margin-left: 10px; cursor: pointer; font-weight: bold; }
+
+        .btn-delete:hover { background: #ff4d4d; color: white; }
+        .btn-move:hover { background: #3498db; color: white; }
+        
+        table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+        td { padding: 10px 12px; border: 1px solid #eee; color: #444; outline: none; vertical-align: middle; }
+
+        .row-estrecha td { padding-top: 4px; padding-bottom: 4px; font-size: 0.95em; }
+        .col-label { width: 55px; font-weight: bold; background-color: #fafafa; font-size: 0.8em; text-align: center; }
+        .col-concept-content { padding-left: 115px !important; height: 45px; } 
+        .col-time-group { width: 260px; text-align: right; }
+
+        input[type="time"] {
+            border: 1px solid #eee; background: #fdfdfd; padding: 4px;
+            border-radius: 4px; width: 85px; text-align: center;
+        }
+
+        .destacado { font-weight: bold; }
+        .tipo-visita { background-color: #e8f4fd; }
+        .tipo-comida { background-color: #fff4e5; }
+        .tipo-cena { background-color: #f3e5f5; }
+        .tipo-salida { background-color: #f9f9f9; }
+        
+        .media-row td { background-color: #fcfcfc; text-align: center; padding: 5px; }
+        .img-preview { max-width: 250px; max-height: 150px; display: block; margin: 10px auto; border-radius: 4px; }
+        .audio-player { width: 90%; height: 35px; margin: 5px auto; display: block; }
+        .hidden-input { display: none; }
+        .upload-label { cursor: pointer; color: #3498db; text-decoration: underline; font-size: 0.9em; }
+
+        .controls-main { margin: 20px 0; display: flex; gap: 15px; justify-content: center; flex-wrap: wrap; }
+        button.action-btn { padding: 12px 20px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        .btn-print { background-color: #2c3e50; color: white; }
+        .btn-clear { background-color: #e74c3c; color: white; }
+        .btn-add-dia { background-color: #34495e; color: white; }
+
+        @media print {
+            .controls-main, .controls-left, .upload-label, .dia-delete { display: none !important; }
+            body { background-color: white; padding: 0; }
+            .container { box-shadow: none; border: none; width: 100%; max-width: 100%; }
+            .col-concept-content { padding-left: 12px !important; }
+            .bloque-dia { background: #eee !important; color: black !important; border: 1px solid #ccc; }
+        }
+    </style>
+</head>
+<body oninput="saveAll()">
+
+<div class="container">
+    <h2 id="titulo-viaje" contenteditable="true" style="text-align:center" onblur="saveAll()">Itinerario de Viaje</h2>
+
+    <div id="itinerario"></div>
+
+    <div class="controls-main">
+        <button class="action-btn btn-add-dia" onclick="addDia()">+ Añadir Día</button>
+        <button class="action-btn" style="background:#7f8c8d; color:white" onclick="addBloque('solo-salida')">+ Salida</button>
+        <button class="action-btn" style="background:#27ae60; color:white" onclick="addBloque('visita')">+ Visita</button>
+        <button class="action-btn" style="background:#e67e22; color:white" onclick="addBloque('comida')">+ Comida</button>
+        <button class="action-btn" style="background:#8e44ad; color:white" onclick="addBloque('cena')">+ Cena</button>
+        <button class="action-btn btn-print" onclick="window.print()">Imprimir / PDF</button>
+        <button class="action-btn btn-clear" onclick="limpiarTodo()">Borrar Todo</button>
+    </div>
+</div>
+
+<script>
+    window.onload = () => {
+        const saved = localStorage.getItem('miItinerario');
+        const savedTitle = localStorage.getItem('tituloViaje');
+        if (savedTitle) document.getElementById('titulo-viaje').innerText = savedTitle;
+        if (saved) {
+            document.getElementById('itinerario').innerHTML = saved;
+            document.querySelectorAll('input[type="time"]').forEach(input => {
+                input.oninput = saveAll;
+            });
+        } else {
+            addDia();
+            addBloque('visita');
+        }
+    };
+
+    function saveAll() {
+        const itinerario = document.getElementById('itinerario').innerHTML;
+        const titulo = document.getElementById('titulo-viaje').innerText;
+        localStorage.setItem('miItinerario', itinerario);
+        localStorage.setItem('tituloViaje', titulo);
+    }
+
+    function addDia() {
+        const container = document.getElementById('itinerario');
+        const html = `
+            <div class="bloque-dia">
+                <h3 contenteditable="true">DÍA 1 - (Haz clic para editar fecha o nombre)</h3>
+                <span class="dia-delete" onclick="if(confirm('¿Borrar día y todo su contenido?')) {this.parentElement.remove(); saveAll();}">✕</span>
+            </div>`;
+        container.insertAdjacentHTML('beforeend', html);
+        saveAll();
+    }
+
+    function addBloque(tipo) {
+        const container = document.getElementById('itinerario');
+        container.insertAdjacentHTML('beforeend', generarHTMLBloque(tipo));
+        saveAll();
+    }
+
+    function moveUp(btn) {
+        const current = btn.closest('.bloque, .bloque-dia');
+        const previous = current.previousElementSibling;
+        if (previous) {
+            current.parentNode.insertBefore(current, previous);
+            saveAll();
+        }
+    }
+
+    function moveDown(btn) {
+        const current = btn.closest('.bloque, .bloque-dia');
+        const next = current.nextElementSibling;
+        if (next) {
+            current.parentNode.insertBefore(next, current);
+            saveAll();
+        }
+    }
+
+    function limpiarTodo() {
+        if(confirm("¿Estás seguro de que quieres borrar todo el itinerario?")) {
+            localStorage.clear();
+            location.reload();
+        }
+    }
+
+    function generarHTMLBloque(tipo) {
+        const id = Date.now() + Math.random();
+        let clase = 'tipo-visita', texto = 'VISITA', dual = true, dur = true;
+        
+        if(tipo === 'comida') { clase = 'tipo-comida'; texto = 'COMIDA'; }
+        if(tipo === 'cena') { clase = 'tipo-cena'; texto = 'CENA'; }
+        if(tipo === 'solo-salida') { clase = 'tipo-salida'; texto = 'PUNTO DE SALIDA'; dual = false; dur = false; }
+
+        const celdaDur = dur ? `<td style="text-align:right" contenteditable="true">duración: <span style="font-weight:normal">1:00</span></td>` : `<td contenteditable="true"></td>`;
+
+        return `
+        <div class="bloque">
+            <div class="controls-left">
+                <button class="btn-ctrl btn-delete" onclick="this.closest('.bloque').remove(); saveAll();">✕</button>
+                <button class="btn-ctrl btn-move" onclick="moveUp(this)">▲</button>
+                <button class="btn-ctrl btn-move" onclick="moveDown(this)">▼</button>
+            </div>
+            <table>
+                <tr class="destacado ${clase}">
+                    <td class="col-label col-concept-content" contenteditable="true"></td>
+                    <td contenteditable="true">${texto}</td>
+                    ${celdaDur}
+                    <td class="col-time-group" style="width:0; padding:0; border:none;"></td>
+                </tr>
+                <tr class="row-estrecha">
+                    <td class="col-label" contenteditable="true">${dual ? 'destino' : 'origen'}</td>
+                    <td contenteditable="true">Lugar...</td>
+                    <td class="col-time-group">
+                        <span style="font-size: 0.8em; color: #888;">${dual ? 'Lle:' : 'Sal:'}</span> <input type="time" value="00:00" oninput="saveAll()">
+                        ${dual ? '<span style="font-size: 0.8em; color: #888; margin-left: 5px;">Sal:</span> <input type="time" value="00:00" oninput="saveAll()">' : ''}
+                    </td>
+                </tr>
+                <tr class="row-estrecha">
+                    <td class="col-label" contenteditable="true">datos</td>
+                    <td colspan="2" contenteditable="true">Notas...</td>
+                </tr>
+                <tr class="media-row">
+                    <td colspan="2">
+                        <label class="upload-label" for="img-${id}">foto</label>
+                        <input type="file" id="img-${id}" class="hidden-input" accept="image/*" onchange="previewImage(this)">
+                        <img class="img-preview" style="display:none" onclick="this.previousElementSibling.click()">
+                    </td>
+                    <td>
+                        <label class="upload-label" for="aud-${id}">audio</label>
+                        <input type="file" id="aud-${id}" class="hidden-input" accept="audio/*" onchange="previewAudio(this)">
+                        <audio class="audio-player" controls style="display:none"></audio>
+                    </td>
+                </tr>
+            </table>
+        </div>`;
+    }
+
+    function previewImage(input) {
+        const reader = new FileReader();
+        const img = input.parentElement.querySelector('.img-preview');
+        reader.onload = e => { img.src = e.target.result; img.style.display = 'block'; input.previousElementSibling.style.display = 'none'; saveAll(); };
+        reader.readAsDataURL(input.files[0]);
+    }
+
+    function previewAudio(input) {
+        const reader = new FileReader();
+        const audio = input.parentElement.querySelector('.audio-player');
+        reader.onload = e => { audio.src = e.target.result; audio.style.display = 'block'; input.previousElementSibling.style.display = 'none'; saveAll(); };
+        reader.readAsDataURL(input.files[0]);
+    }
+</script>
+
+</body>
+</html>
