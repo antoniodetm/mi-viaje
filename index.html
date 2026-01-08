@@ -7,97 +7,90 @@
     <style>
         body { 
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
-            background-color: #f2f2f7; 
-            margin: 0; 
-            padding: 10px; 
-            display: flex; 
-            flex-direction: column; 
-            align-items: center; 
+            background-color: #f2f2f7; margin: 0; padding: 10px; 
+            display: flex; flex-direction: column; align-items: center; 
         }
-
         .container { 
-            background: white; 
-            padding: 15px; 
-            border-radius: 15px; 
-            box-shadow: 0 4px 20px rgba(0,0,0,0.1); 
-            width: 100%; 
-            max-width: 400px; 
-            box-sizing: border-box; 
+            background: white; padding: 15px; border-radius: 15px; 
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1); width: 100%; 
+            max-width: 400px; box-sizing: border-box; 
         }
-
-        .main-nav { 
-            display: grid; 
-            grid-template-columns: 1fr 1fr; 
-            gap: 10px; 
-            margin-bottom: 20px;
-        }
-
+        .main-nav { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
         .action-btn { 
             padding: 12px; border: none; border-radius: 10px; 
             font-weight: 600; font-size: 14px; color: white; 
             display: flex; align-items: center; justify-content: center; min-height: 44px;
         }
-
-        .dia-container { 
-            margin-bottom: 25px; border: 1px solid #d1d1d6; 
-            border-radius: 12px; background: #fff; overflow: hidden;
-        }
-
-        .bloque-dia-header { 
-            background: #1c1c1e; color: white; padding: 12px 15px; 
-            display: flex; justify-content: space-between; align-items: center;
-        }
-
-        .dia-controls { 
-            display: grid; grid-template-columns: repeat(4, 1fr); 
-            gap: 4px; padding: 8px; background: #f2f2f7;
-        }
-
-        .bloque { 
-            margin: 10px; border: 1px solid #e5e5ea; border-radius: 10px; 
-            position: relative; padding-left: 35px; 
-        }
-
+        .dia-container { margin-bottom: 25px; border: 1px solid #d1d1d6; border-radius: 12px; background: #fff; overflow: hidden; }
+        .bloque-dia-header { background: #1c1c1e; color: white; padding: 12px 15px; display: flex; justify-content: space-between; align-items: center; }
+        .dia-controls { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; padding: 8px; background: #f2f2f7; }
+        .bloque { margin: 10px; border: 1px solid #e5e5ea; border-radius: 10px; position: relative; padding-left: 35px; }
+        
+        /* Controles de movimiento */
         .controls-left { 
             position: absolute; left: 0; top: 0; bottom: 0; width: 30px; 
             display: flex; flex-direction: column; border-right: 1px solid #e5e5ea; background: #f9f9f9;
         }
-
         .btn-ctrl { flex: 1; border: none; background: transparent; font-size: 12px; }
 
         table { width: 100%; border-collapse: collapse; table-layout: fixed; }
         td { padding: 8px; border-bottom: 1px solid #f2f2f7; font-size: 14px; vertical-align: middle; }
-
         .col-label { width: 55px; font-size: 10px; color: #8e8e93; text-transform: uppercase; font-weight: bold; }
-
-        /* Estilo de Horas solicitado */
-        .time-wrapper { display: flex; justify-content: flex-end; gap: 8px; }
         
-        input[type="time"] { 
-            border-radius: 6px; 
-            font-size: 16px !important; 
-            width: 80px;
-            padding: 4px;
-            background: #fff;
-            -webkit-appearance: none;
+        /* ALINEACIÓN CHINCHETA A LA DERECHA */
+        .lugar-td { 
+            display: flex; 
+            align-items: center; 
+            justify-content: space-between; /* Esto empuja el pin al final */
         }
+        .pin-container {
+            display: flex;
+            align-items: center;
+            position: relative;
+        }
+        .pin-map { 
+            cursor: pointer; 
+            font-size: 20px; 
+            filter: grayscale(1); 
+            transition: 0.2s;
+            margin-left: auto; /* Refuerza el empuje a la derecha */
+        }
+        .pin-active { filter: grayscale(0) !important; }
+        
+        .map-popover { 
+            display: none; position: absolute; background: white; border: 1px solid #d1d1d6;
+            padding: 10px; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 100; width: 220px; right: 0; top: 35px;
+        }
+        .map-popover input { width: 100%; font-size: 14px; padding: 8px; border-radius: 5px; border: 1px solid #ccc; margin-bottom: 8px; box-sizing: border-box; }
 
-        .time-start { border: 2px solid #007aff !important; } /* Azul para Inicio */
-        .time-end { border: 2px solid #ff3b30 !important; }   /* Rojo para Fin/Salida */
+        .time-wrapper { display: flex; justify-content: flex-end; gap: 8px; }
+        input[type="time"] { 
+            border-radius: 6px; font-size: 16px !important; width: 80px; 
+            padding: 4px; background: #fff; border: 2px solid transparent; 
+        }
+        .time-start { border-color: #007aff !important; } 
+        .time-end { border-color: #ff3b30 !important; }
+        .time-dur { border-color: #34c759 !important; width: 70px; }
 
         .destacado td { font-weight: bold; }
         .tipo-visita { border-top: 3px solid #007aff; }
         .tipo-comida { border-top: 3px solid #ff9500; }
         .tipo-cena { border-top: 3px solid #5856d6; }
         .tipo-salida { border-top: 3px solid #8e8e93; }
-
-        .media-container { text-align: center; padding: 5px; border-bottom: 1px solid #f2f2f7; }
+        
+        .media-container { text-align: center; padding: 5px; border-bottom: 1px solid #f2f2f7; position: relative; min-height: 40px; }
         .img-preview { width: 100%; border-radius: 8px; display: none; margin-top: 5px; }
         .audio-player { width: 100%; display: none; margin-top: 5px; }
         .upload-label { color: #007aff; font-size: 12px; font-weight: bold; display: block; padding: 10px; cursor: pointer; }
+        .btn-del-media { 
+            position: absolute; top: 5px; right: 5px; background: #ff3b30; 
+            color: white; border: none; border-radius: 50%; width: 24px; height: 24px; 
+            font-size: 14px; display: none; cursor: pointer; z-index: 10; font-weight: bold;
+        }
     </style>
 </head>
-<body oninput="saveAll()">
+<body onclick="closeAllPopovers(event)" oninput="saveAll()">
 
 <div class="container">
     <h2 id="titulo-viaje" contenteditable="true" style="text-align:center">Mi Itinerario</h2>
@@ -122,15 +115,41 @@
         if (saved) {
             document.getElementById('itinerario').innerHTML = saved;
             actualizarEfectos();
-        } else {
-            addDia();
-        }
+        } else { addDia(); }
     };
 
     function saveAll() {
         document.querySelectorAll('input[type="time"]').forEach(i => i.setAttribute('value', i.value));
+        document.querySelectorAll('.map-url-input').forEach(i => i.setAttribute('value', i.value));
         localStorage.setItem('miItinerario', document.getElementById('itinerario').innerHTML);
         localStorage.setItem('tituloViaje', document.getElementById('titulo-viaje').innerText);
+    }
+
+    function toggleMapInput(btn, event) {
+        event.stopPropagation();
+        const popover = btn.nextElementSibling;
+        const input = popover.querySelector('input');
+        if (btn.classList.contains('pin-active') && input.value) {
+            window.open(input.value, '_blank');
+        } else {
+            popover.style.display = popover.style.display === 'block' ? 'none' : 'block';
+        }
+    }
+
+    function closeAllPopovers(e) {
+        if (!e.target.closest('.map-popover') && !e.target.closest('.pin-map')) {
+            document.querySelectorAll('.map-popover').forEach(p => p.style.display = 'none');
+        }
+    }
+
+    function checkPinStatus(input) {
+        const pin = input.parentElement.previousElementSibling;
+        if (input.value.startsWith('http')) {
+            pin.classList.add('pin-active');
+        } else {
+            pin.classList.remove('pin-active');
+        }
+        saveAll();
     }
 
     function actualizarEfectos() {
@@ -138,6 +157,40 @@
             input.oninput = saveAll;
             if(input.getAttribute('value')) input.value = input.getAttribute('value');
         });
+        document.querySelectorAll('.map-url-input').forEach(input => {
+            if(input.getAttribute('value')) input.value = input.getAttribute('value');
+            checkPinStatus(input);
+        });
+    }
+
+    function triggerUpload(el) { el.nextElementSibling.click(); }
+
+    function handleMedia(input, type) {
+        const file = input.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = e => {
+            const container = input.parentElement;
+            const preview = type === 'img' ? container.querySelector('.img-preview') : container.querySelector('.audio-player');
+            preview.src = e.target.result;
+            preview.style.display = 'block';
+            container.querySelector('.btn-del-media').style.display = 'block';
+            container.querySelector('.upload-label').style.display = 'none';
+            saveAll();
+        };
+        reader.readAsDataURL(file);
+    }
+
+    function removeMedia(btn) {
+        const container = btn.parentElement;
+        const img = container.querySelector('.img-preview');
+        const aud = container.querySelector('.audio-player');
+        if(img) { img.src = ""; img.style.display = "none"; }
+        if(aud) { aud.src = ""; aud.style.display = "none"; }
+        container.querySelector('input[type="file"]').value = "";
+        btn.style.display = "none";
+        container.querySelector('.upload-label').style.display = "block";
+        saveAll();
     }
 
     function addDia() {
@@ -162,17 +215,12 @@
 
     function addEvento(diaId, tipo) {
         const lista = document.querySelector(`#${diaId} .eventos-lista`);
-        lista.insertAdjacentHTML('beforeend', generarHTMLBloque(tipo));
-        saveAll();
-    }
-
-    function generarHTMLBloque(tipo) {
-        let clase = 'tipo-visita', texto = 'VISITA', dual = true;
+        let clase = 'tipo-visita', texto = 'VISITA', dual = true, hasDur = true;
         if(tipo === 'comida') { clase = 'tipo-comida'; texto = 'COMIDA'; }
         if(tipo === 'cena') { clase = 'tipo-cena'; texto = 'CENA'; }
-        if(tipo === 'solo-salida') { clase = 'tipo-salida'; texto = 'SALIDA'; dual = false; }
+        if(tipo === 'solo-salida') { clase = 'tipo-salida'; texto = 'SALIDA'; dual = false; hasDur = false; }
         
-        return `
+        const html = `
         <div class="bloque">
             <div class="controls-left">
                 <button class="btn-ctrl" style="color:#ff3b30" onclick="this.closest('.bloque').remove();saveAll();">✕</button>
@@ -182,16 +230,26 @@
             <table>
                 <tr class="destacado ${clase}">
                     <td colspan="2" contenteditable="true">${texto}</td>
-                    <td style="text-align:right" contenteditable="true">1h</td>
+                    <td style="text-align:right">
+                        ${hasDur ? '<input type="time" class="time-dur" value="01:00" oninput="saveAll()">' : ''}
+                    </td>
                 </tr>
                 <tr>
                     <td class="col-label">Lugar</td>
-                    <td colspan="2" contenteditable="true">...</td>
+                    <td colspan="2">
+                        <div class="lugar-td">
+                            <span contenteditable="true" style="flex:1">...</span>
+                            <div class="pin-container">
+                                <span class="pin-map" onclick="toggleMapInput(this, event)">📍</span>
+                                <div class="map-popover">
+                                    <input type="text" class="map-url-input" placeholder="Pegar link..." oninput="checkPinStatus(this)">
+                                    <button class="action-btn" style="background:#34c759; width:100%; min-height:35px; padding:5px; font-size:12px;" onclick="this.parentElement.style.display='none'">Guardar</button>
+                                </div>
+                            </div>
+                        </div>
+                    </td>
                 </tr>
-                <tr>
-                    <td class="col-label">Notas</td>
-                    <td colspan="2" contenteditable="true">...</td>
-                </tr>
+                <tr><td class="col-label">Notas</td><td colspan="2" contenteditable="true">...</td></tr>
                 <tr>
                     <td class="col-label">Horas</td>
                     <td colspan="2">
@@ -203,36 +261,24 @@
                 </tr>
                 <tr>
                     <td colspan="3" class="media-container">
-                        <label class="upload-label" onclick="this.nextElementSibling.click()">📷 Foto</label>
-                        <input type="file" style="display:none" accept="image/*" onchange="previewMedia(this, 'img')">
+                        <button class="btn-del-media" onclick="removeMedia(this)">✕</button>
+                        <label class="upload-label" onclick="triggerUpload(this)">📷 Foto</label>
+                        <input type="file" style="display:none" accept="image/*" onchange="handleMedia(this, 'img')">
                         <img class="img-preview">
                     </td>
                 </tr>
                 <tr>
                     <td colspan="3" class="media-container">
-                        <label class="upload-label" onclick="this.nextElementSibling.click()">🎤 Audio</label>
-                        <input type="file" style="display:none" accept="audio/*" onchange="previewMedia(this, 'aud')">
+                        <button class="btn-del-media" onclick="removeMedia(this)">✕</button>
+                        <label class="upload-label" onclick="triggerUpload(this)">🎤 Audio</label>
+                        <input type="file" style="display:none" accept="audio/*" onchange="handleMedia(this, 'aud')">
                         <audio controls class="audio-player"></audio>
                     </td>
                 </tr>
             </table>
         </div>`;
-    }
-
-    function previewMedia(input, type) {
-        const file = input.files[0];
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = e => {
-            const container = input.parentElement;
-            const label = container.querySelector('.upload-label');
-            const element = type === 'img' ? container.querySelector('.img-preview') : container.querySelector('.audio-player');
-            element.src = e.target.result;
-            element.style.display = 'block';
-            if(label) label.style.display = 'none'; 
-            saveAll();
-        };
-        reader.readAsDataURL(file);
+        lista.insertAdjacentHTML('beforeend', html);
+        saveAll();
     }
 
     function moveUp(btn) {
@@ -240,13 +286,11 @@
         const prev = current.previousElementSibling;
         if (prev) { current.parentNode.insertBefore(current, prev); saveAll(); }
     }
-
     function moveDown(btn) {
         const current = btn.closest('.bloque');
         const next = current.nextElementSibling;
         if (next) { current.parentNode.insertBefore(next, current); saveAll(); }
     }
-
     function exportarDatos() {
         saveAll();
         const datos = { titulo: document.getElementById('titulo-viaje').innerText, cuerpo: document.getElementById('itinerario').innerHTML };
@@ -256,7 +300,6 @@
         a.download = "itinerario.json";
         a.click();
     }
-
     function importarDatos(input) {
         const reader = new FileReader();
         reader.onload = e => {
@@ -268,7 +311,6 @@
         };
         reader.readAsText(input.files[0]);
     }
-
     function limpiarTodo() { if(confirm("¿Borrar todo?")) { localStorage.clear(); location.reload(); } }
 </script>
 </body>
