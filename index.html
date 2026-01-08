@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Itinerario por Días - Auto-guardado</title>
+    <title>Itinerario de Viaje - Sincronizable</title>
     <style>
         body { 
             font-family: 'Segoe UI', Arial, sans-serif; 
@@ -17,14 +17,12 @@
             width: 95%; max-width: 1400px; 
         }
         
-        /* Estilo para el separador de DÍA */
         .bloque-dia {
             margin: 30px 0 15px 0;
             background: #2c3e50;
             color: white;
             padding: 10px 15px;
             border-radius: 5px;
-            position: relative;
             display: flex;
             align-items: center;
         }
@@ -55,9 +53,6 @@
         
         .dia-delete { color: #ff4d4d; margin-left: 10px; cursor: pointer; font-weight: bold; }
 
-        .btn-delete:hover { background: #ff4d4d; color: white; }
-        .btn-move:hover { background: #3498db; color: white; }
-        
         table { width: 100%; border-collapse: collapse; table-layout: fixed; }
         td { padding: 10px 12px; border: 1px solid #eee; color: #444; outline: none; vertical-align: middle; }
 
@@ -81,13 +76,13 @@
         .img-preview { max-width: 250px; max-height: 150px; display: block; margin: 10px auto; border-radius: 4px; }
         .audio-player { width: 90%; height: 35px; margin: 5px auto; display: block; }
         .hidden-input { display: none; }
-        .upload-label { cursor: pointer; color: #3498db; text-decoration: underline; font-size: 0.9em; }
+        .upload-label { cursor: pointer; color: #3498db; text-decoration: underline; font-size: 0.8em; }
 
-        .controls-main { margin: 20px 0; display: flex; gap: 15px; justify-content: center; flex-wrap: wrap; }
-        button.action-btn { padding: 12px 20px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
-        .btn-print { background-color: #2c3e50; color: white; }
-        .btn-clear { background-color: #e74c3c; color: white; }
-        .btn-add-dia { background-color: #34495e; color: white; }
+        .controls-main { margin: 20px 0; display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+        button.action-btn { padding: 10px 15px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 13px; }
+        
+        .btn-sync { background-color: #2980b9; color: white; }
+        .btn-clear { background-color: #c0392b; color: white; }
 
         @media print {
             .controls-main, .controls-left, .upload-label, .dia-delete { display: none !important; }
@@ -101,18 +96,20 @@
 <body oninput="saveAll()">
 
 <div class="container">
-    <h2 id="titulo-viaje" contenteditable="true" style="text-align:center" onblur="saveAll()">Itinerario de Viaje</h2>
+    <h2 id="titulo-viaje" contenteditable="true" style="text-align:center" onblur="saveAll()">Mi Itinerario</h2>
 
     <div id="itinerario"></div>
 
     <div class="controls-main">
-        <button class="action-btn btn-add-dia" onclick="addDia()">+ Añadir Día</button>
-        <button class="action-btn" style="background:#7f8c8d; color:white" onclick="addBloque('solo-salida')">+ Salida</button>
+        <button class="action-btn" style="background:#34495e; color:white" onclick="addDia()">+ Día</button>
         <button class="action-btn" style="background:#27ae60; color:white" onclick="addBloque('visita')">+ Visita</button>
         <button class="action-btn" style="background:#e67e22; color:white" onclick="addBloque('comida')">+ Comida</button>
         <button class="action-btn" style="background:#8e44ad; color:white" onclick="addBloque('cena')">+ Cena</button>
-        <button class="action-btn btn-print" onclick="window.print()">Imprimir / PDF</button>
-        <button class="action-btn btn-clear" onclick="limpiarTodo()">Borrar Todo</button>
+        <button class="action-btn btn-sync" onclick="exportarDatos()">⬇️ Exportar Datos</button>
+        <button class="action-btn btn-sync" onclick="document.getElementById('importFile').click()">⬆️ Importar Datos</button>
+        <input type="file" id="importFile" class="hidden-input" accept=".json" onchange="importarDatos(this)">
+        <button class="action-btn" style="background:#2c3e50; color:white" onclick="window.print()">🖨️ PDF</button>
+        <button class="action-btn btn-clear" onclick="limpiarTodo()">🗑️ Borrar Todo</button>
     </div>
 </div>
 
@@ -123,130 +120,120 @@
         if (savedTitle) document.getElementById('titulo-viaje').innerText = savedTitle;
         if (saved) {
             document.getElementById('itinerario').innerHTML = saved;
-            document.querySelectorAll('input[type="time"]').forEach(input => {
-                input.oninput = saveAll;
-            });
+            actualizarInputs();
         } else {
             addDia();
             addBloque('visita');
         }
     };
 
+    function actualizarInputs() {
+        document.querySelectorAll('input[type="time"]').forEach(input => {
+            input.oninput = saveAll;
+            const val = input.getAttribute('value');
+            if(val) input.value = val;
+        });
+    }
+
     function saveAll() {
+        // Antes de guardar el HTML, metemos el valor del input en el atributo value para que se persista
+        document.querySelectorAll('input[type="time"]').forEach(i => i.setAttribute('value', i.value));
         const itinerario = document.getElementById('itinerario').innerHTML;
         const titulo = document.getElementById('titulo-viaje').innerText;
         localStorage.setItem('miItinerario', itinerario);
         localStorage.setItem('tituloViaje', titulo);
     }
 
+    function exportarDatos() {
+        saveAll();
+        const datos = {
+            titulo: document.getElementById('titulo-viaje').innerText,
+            cuerpo: document.getElementById('itinerario').innerHTML
+        };
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(datos));
+        const downloadAnchorNode = document.createElement('a');
+        downloadAnchorNode.setAttribute("href", dataStr);
+        downloadAnchorNode.setAttribute("download", "itinerario_viaje.json");
+        document.body.appendChild(downloadAnchorNode);
+        downloadAnchorNode.click();
+        downloadAnchorNode.remove();
+    }
+
+    function importarDatos(input) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const datos = JSON.parse(e.target.result);
+            document.getElementById('titulo-viaje').innerText = datos.titulo;
+            document.getElementById('itinerario').innerHTML = datos.cuerpo;
+            saveAll();
+            actualizarInputs();
+            alert("¡Itinerario importado con éxito!");
+        };
+        reader.readAsText(input.files[0]);
+    }
+
     function addDia() {
-        const container = document.getElementById('itinerario');
-        const html = `
-            <div class="bloque-dia">
-                <h3 contenteditable="true">DÍA 1 - (Haz clic para editar fecha o nombre)</h3>
-                <span class="dia-delete" onclick="if(confirm('¿Borrar día y todo su contenido?')) {this.parentElement.remove(); saveAll();}">✕</span>
-            </div>`;
-        container.insertAdjacentHTML('beforeend', html);
+        const html = `<div class="bloque-dia"><h3 contenteditable="true">DÍA X</h3><span class="dia-delete" onclick="if(confirm('¿Borrar día?')){this.parentElement.remove();saveAll();}">✕</span></div>`;
+        document.getElementById('itinerario').insertAdjacentHTML('beforeend', html);
         saveAll();
     }
 
     function addBloque(tipo) {
-        const container = document.getElementById('itinerario');
-        container.insertAdjacentHTML('beforeend', generarHTMLBloque(tipo));
+        document.getElementById('itinerario').insertAdjacentHTML('beforeend', generarHTMLBloque(tipo));
         saveAll();
     }
 
     function moveUp(btn) {
         const current = btn.closest('.bloque, .bloque-dia');
-        const previous = current.previousElementSibling;
-        if (previous) {
-            current.parentNode.insertBefore(current, previous);
-            saveAll();
-        }
+        const prev = current.previousElementSibling;
+        if (prev) { current.parentNode.insertBefore(current, prev); saveAll(); }
     }
 
     function moveDown(btn) {
         const current = btn.closest('.bloque, .bloque-dia');
         const next = current.nextElementSibling;
-        if (next) {
-            current.parentNode.insertBefore(next, current);
-            saveAll();
-        }
+        if (next) { current.parentNode.insertBefore(next, current); saveAll(); }
     }
 
     function limpiarTodo() {
-        if(confirm("¿Estás seguro de que quieres borrar todo el itinerario?")) {
-            localStorage.clear();
-            location.reload();
-        }
+        if(confirm("¿Borrar todo?")) { localStorage.clear(); location.reload(); }
     }
 
     function generarHTMLBloque(tipo) {
         const id = Date.now() + Math.random();
         let clase = 'tipo-visita', texto = 'VISITA', dual = true, dur = true;
-        
         if(tipo === 'comida') { clase = 'tipo-comida'; texto = 'COMIDA'; }
         if(tipo === 'cena') { clase = 'tipo-cena'; texto = 'CENA'; }
-        if(tipo === 'solo-salida') { clase = 'tipo-salida'; texto = 'PUNTO DE SALIDA'; dual = false; dur = false; }
-
-        const celdaDur = dur ? `<td style="text-align:right" contenteditable="true">duración: <span style="font-weight:normal">1:00</span></td>` : `<td contenteditable="true"></td>`;
-
+        if(tipo === 'solo-salida') { clase = 'tipo-salida'; texto = 'SALIDA'; dual = false; dur = false; }
+        
         return `
         <div class="bloque">
             <div class="controls-left">
-                <button class="btn-ctrl btn-delete" onclick="this.closest('.bloque').remove(); saveAll();">✕</button>
-                <button class="btn-ctrl btn-move" onclick="moveUp(this)">▲</button>
-                <button class="btn-ctrl btn-move" onclick="moveDown(this)">▼</button>
+                <button class="btn-ctrl" onclick="this.closest('.bloque').remove();saveAll();">✕</button>
+                <button class="btn-ctrl" onclick="moveUp(this)">▲</button>
+                <button class="btn-ctrl" onclick="moveDown(this)">▼</button>
             </div>
             <table>
                 <tr class="destacado ${clase}">
                     <td class="col-label col-concept-content" contenteditable="true"></td>
                     <td contenteditable="true">${texto}</td>
-                    ${celdaDur}
-                    <td class="col-time-group" style="width:0; padding:0; border:none;"></td>
+                    ${dur ? '<td style="text-align:right" contenteditable="true">dur: 1h</td>' : '<td></td>'}
                 </tr>
                 <tr class="row-estrecha">
-                    <td class="col-label" contenteditable="true">${dual ? 'destino' : 'origen'}</td>
-                    <td contenteditable="true">Lugar...</td>
+                    <td class="col-label" contenteditable="true">lugar</td>
+                    <td contenteditable="true">...</td>
                     <td class="col-time-group">
-                        <span style="font-size: 0.8em; color: #888;">${dual ? 'Lle:' : 'Sal:'}</span> <input type="time" value="00:00" oninput="saveAll()">
-                        ${dual ? '<span style="font-size: 0.8em; color: #888; margin-left: 5px;">Sal:</span> <input type="time" value="00:00" oninput="saveAll()">' : ''}
+                        <span>Lle:</span> <input type="time" value="00:00">
+                        ${dual ? '<span> Sal:</span> <input type="time" value="00:00">' : ''}
                     </td>
                 </tr>
                 <tr class="row-estrecha">
                     <td class="col-label" contenteditable="true">datos</td>
-                    <td colspan="2" contenteditable="true">Notas...</td>
-                </tr>
-                <tr class="media-row">
-                    <td colspan="2">
-                        <label class="upload-label" for="img-${id}">foto</label>
-                        <input type="file" id="img-${id}" class="hidden-input" accept="image/*" onchange="previewImage(this)">
-                        <img class="img-preview" style="display:none" onclick="this.previousElementSibling.click()">
-                    </td>
-                    <td>
-                        <label class="upload-label" for="aud-${id}">audio</label>
-                        <input type="file" id="aud-${id}" class="hidden-input" accept="audio/*" onchange="previewAudio(this)">
-                        <audio class="audio-player" controls style="display:none"></audio>
-                    </td>
+                    <td colspan="2" contenteditable="true">...</td>
                 </tr>
             </table>
         </div>`;
     }
-
-    function previewImage(input) {
-        const reader = new FileReader();
-        const img = input.parentElement.querySelector('.img-preview');
-        reader.onload = e => { img.src = e.target.result; img.style.display = 'block'; input.previousElementSibling.style.display = 'none'; saveAll(); };
-        reader.readAsDataURL(input.files[0]);
-    }
-
-    function previewAudio(input) {
-        const reader = new FileReader();
-        const audio = input.parentElement.querySelector('.audio-player');
-        reader.onload = e => { audio.src = e.target.result; audio.style.display = 'block'; input.previousElementSibling.style.display = 'none'; saveAll(); };
-        reader.readAsDataURL(input.files[0]);
-    }
 </script>
-
 </body>
 </html>
