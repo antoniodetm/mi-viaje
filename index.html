@@ -21,7 +21,7 @@
             border-radius: 15px; 
             box-shadow: 0 4px 20px rgba(0,0,0,0.1); 
             width: 100%; 
-            max-width: 400px; /* Ancho ideal iPhone 12 */
+            max-width: 400px; 
             box-sizing: border-box; 
         }
 
@@ -33,69 +33,57 @@
         }
 
         .action-btn { 
-            padding: 12px; 
-            border: none; 
-            border-radius: 10px; 
-            font-weight: 600; 
-            font-size: 14px; 
-            color: white; 
-            display: flex; 
-            align-items: center; 
-            justify-content: center;
-            min-height: 44px;
+            padding: 12px; border: none; border-radius: 10px; 
+            font-weight: 600; font-size: 14px; color: white; 
+            display: flex; align-items: center; justify-content: center; min-height: 44px;
         }
 
         .dia-container { 
-            margin-bottom: 25px; 
-            border: 1px solid #d1d1d6; 
-            border-radius: 12px; 
-            background: #fff; 
-            overflow: hidden;
+            margin-bottom: 25px; border: 1px solid #d1d1d6; 
+            border-radius: 12px; background: #fff; overflow: hidden;
         }
 
         .bloque-dia-header { 
-            background: #1c1c1e; 
-            color: white; 
-            padding: 12px 15px; 
-            display: flex; 
-            justify-content: space-between; 
-            align-items: center;
+            background: #1c1c1e; color: white; padding: 12px 15px; 
+            display: flex; justify-content: space-between; align-items: center;
         }
 
         .dia-controls { 
-            display: grid; 
-            grid-template-columns: repeat(4, 1fr); 
-            gap: 4px; 
-            padding: 8px; 
-            background: #f2f2f7;
+            display: grid; grid-template-columns: repeat(4, 1fr); 
+            gap: 4px; padding: 8px; background: #f2f2f7;
         }
 
         .bloque { 
-            margin: 10px; 
-            border: 1px solid #e5e5ea; 
-            border-radius: 10px; 
-            position: relative; 
-            padding-left: 40px; 
+            margin: 10px; border: 1px solid #e5e5ea; border-radius: 10px; 
+            position: relative; padding-left: 35px; 
         }
 
         .controls-left { 
-            position: absolute; left: 0; top: 0; bottom: 0; width: 35px; 
+            position: absolute; left: 0; top: 0; bottom: 0; width: 30px; 
             display: flex; flex-direction: column; border-right: 1px solid #e5e5ea; background: #f9f9f9;
         }
 
-        .btn-ctrl { flex: 1; border: none; background: transparent; font-size: 14px; }
+        .btn-ctrl { flex: 1; border: none; background: transparent; font-size: 12px; }
 
         table { width: 100%; border-collapse: collapse; table-layout: fixed; }
-        td { padding: 8px; border-bottom: 1px solid #f2f2f7; font-size: 14px; }
+        td { padding: 8px; border-bottom: 1px solid #f2f2f7; font-size: 14px; vertical-align: middle; }
 
-        .col-label { width: 50px; font-size: 10px; color: #8e8e93; text-transform: uppercase; }
+        .col-label { width: 55px; font-size: 10px; color: #8e8e93; text-transform: uppercase; font-weight: bold; }
 
+        /* Estilo de Horas solicitado */
+        .time-wrapper { display: flex; justify-content: flex-end; gap: 8px; }
+        
         input[type="time"] { 
-            border: 1px solid #d1d1d6; 
-            border-radius: 5px; 
+            border-radius: 6px; 
             font-size: 16px !important; 
-            width: 75px;
+            width: 80px;
+            padding: 4px;
+            background: #fff;
+            -webkit-appearance: none;
         }
+
+        .time-start { border: 2px solid #007aff !important; } /* Azul para Inicio */
+        .time-end { border: 2px solid #ff3b30 !important; }   /* Rojo para Fin/Salida */
 
         .destacado td { font-weight: bold; }
         .tipo-visita { border-top: 3px solid #007aff; }
@@ -103,11 +91,10 @@
         .tipo-cena { border-top: 3px solid #5856d6; }
         .tipo-salida { border-top: 3px solid #8e8e93; }
 
-        /* Multimedia */
-        .media-container { text-align: center; padding: 5px; }
+        .media-container { text-align: center; padding: 5px; border-bottom: 1px solid #f2f2f7; }
         .img-preview { width: 100%; border-radius: 8px; display: none; margin-top: 5px; }
         .audio-player { width: 100%; display: none; margin-top: 5px; }
-        .upload-label { color: #007aff; font-size: 12px; font-weight: bold; display: block; padding: 10px; }
+        .upload-label { color: #007aff; font-size: 12px; font-weight: bold; display: block; padding: 10px; cursor: pointer; }
     </style>
 </head>
 <body oninput="saveAll()">
@@ -158,7 +145,7 @@
         const html = `
         <div class="dia-container" id="${id}">
             <div class="bloque-dia-header">
-                <h3 contenteditable="true">FECHA: ---</h3>
+                <h3 contenteditable="true">DÍA: ---</h3>
                 <span onclick="if(confirm('¿Borrar día?')){this.closest('.dia-container').remove();saveAll();}">✕</span>
             </div>
             <div class="dia-controls">
@@ -202,10 +189,16 @@
                     <td colspan="2" contenteditable="true">...</td>
                 </tr>
                 <tr>
+                    <td class="col-label">Notas</td>
+                    <td colspan="2" contenteditable="true">...</td>
+                </tr>
+                <tr>
                     <td class="col-label">Horas</td>
                     <td colspan="2">
-                        L: <input type="time" value="00:00" oninput="saveAll()">
-                        ${dual ? ' S: <input type="time" value="00:00" oninput="saveAll()">' : ''}
+                        <div class="time-wrapper">
+                            <input type="time" class="time-start" value="00:00" oninput="saveAll()">
+                            ${dual ? '<input type="time" class="time-end" value="00:00" oninput="saveAll()">' : ''}
+                        </div>
                     </td>
                 </tr>
                 <tr>
@@ -222,10 +215,6 @@
                         <audio controls class="audio-player"></audio>
                     </td>
                 </tr>
-                <tr>
-                    <td class="col-label">Notas</td>
-                    <td colspan="2" contenteditable="true">...</td>
-                </tr>
             </table>
         </div>`;
     }
@@ -238,10 +227,9 @@
             const container = input.parentElement;
             const label = container.querySelector('.upload-label');
             const element = type === 'img' ? container.querySelector('.img-preview') : container.querySelector('.audio-player');
-            
             element.src = e.target.result;
             element.style.display = 'block';
-            label.style.display = 'none'; // Quita el texto al seleccionar
+            if(label) label.style.display = 'none'; 
             saveAll();
         };
         reader.readAsDataURL(file);
