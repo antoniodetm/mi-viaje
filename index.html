@@ -3,86 +3,131 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Itinerario Viaje - iPhone Optimized</title>
+    <title>Itinerario Viaje Pro</title>
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f4f7f6; margin: 0; padding: 10px; display: flex; flex-direction: column; align-items: center; }
-        .container { background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); width: 100%; max-width: 1400px; box-sizing: border-box; }
-        
-        .dia-container { margin-bottom: 30px; border: 2px solid #2c3e50; border-radius: 8px; padding: 10px; background: #fafafa; width: 100%; box-sizing: border-box; }
-        .bloque-dia-header { background: #2c3e50; color: white; padding: 12px; border-radius: 5px; display: flex; align-items: center; margin-bottom: 15px; }
-        .bloque-dia-header h3 { margin: 0; flex-grow: 1; font-size: 1.1em; outline: none; }
-        
-        .dia-controls { display: flex; gap: 5px; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px dashed #ccc; flex-wrap: wrap; }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
+            background-color: #f2f2f7; 
+            margin: 0; 
+            padding: 10px; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+        }
 
-        .bloque { margin-bottom: 15px; border: 1px solid #ddd; border-radius: 8px; overflow: hidden; background: white; position: relative; }
-        .controls-left { position: absolute; left: 0; top: 0; height: 45px; display: flex; z-index: 10; border-right: 1px solid rgba(0,0,0,0.1); background: rgba(0,0,0,0.05); }
-        .btn-ctrl { border: none; background: transparent; cursor: pointer; display: flex; align-items: center; justify-content: center; font-weight: bold; height: 100%; width: 40px; font-size: 18px; }
+        .container { 
+            background: white; 
+            padding: 15px; 
+            border-radius: 15px; 
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1); 
+            width: 100%; 
+            max-width: 400px; /* Ancho ideal iPhone 12 */
+            box-sizing: border-box; 
+        }
+
+        .main-nav { 
+            display: grid; 
+            grid-template-columns: 1fr 1fr; 
+            gap: 10px; 
+            margin-bottom: 20px;
+        }
+
+        .action-btn { 
+            padding: 12px; 
+            border: none; 
+            border-radius: 10px; 
+            font-weight: 600; 
+            font-size: 14px; 
+            color: white; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center;
+            min-height: 44px;
+        }
+
+        .dia-container { 
+            margin-bottom: 25px; 
+            border: 1px solid #d1d1d6; 
+            border-radius: 12px; 
+            background: #fff; 
+            overflow: hidden;
+        }
+
+        .bloque-dia-header { 
+            background: #1c1c1e; 
+            color: white; 
+            padding: 12px 15px; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center;
+        }
+
+        .dia-controls { 
+            display: grid; 
+            grid-template-columns: repeat(4, 1fr); 
+            gap: 4px; 
+            padding: 8px; 
+            background: #f2f2f7;
+        }
+
+        .bloque { 
+            margin: 10px; 
+            border: 1px solid #e5e5ea; 
+            border-radius: 10px; 
+            position: relative; 
+            padding-left: 40px; 
+        }
+
+        .controls-left { 
+            position: absolute; left: 0; top: 0; bottom: 0; width: 35px; 
+            display: flex; flex-direction: column; border-right: 1px solid #e5e5ea; background: #f9f9f9;
+        }
+
+        .btn-ctrl { flex: 1; border: none; background: transparent; font-size: 14px; }
 
         table { width: 100%; border-collapse: collapse; table-layout: fixed; }
-        td { padding: 10px; border: 1px solid #eee; color: #444; outline: none; vertical-align: middle; word-wrap: break-word; }
+        td { padding: 8px; border-bottom: 1px solid #f2f2f7; font-size: 14px; }
 
-        .row-estrecha td { padding-top: 8px; padding-bottom: 8px; font-size: 0.95em; }
-        .col-label { width: 60px; font-weight: bold; background-color: #f0f0f0; font-size: 0.7em; text-align: center; text-transform: uppercase; }
-        .col-concept-content { padding-left: 125px !important; height: 50px; } 
-        .col-time-group { width: auto; text-align: right; white-space: nowrap; }
+        .col-label { width: 50px; font-size: 10px; color: #8e8e93; text-transform: uppercase; }
 
-        input[type="time"] { border: 1px solid #ddd; padding: 5px; border-radius: 4px; width: 85px; font-size: 16px; /* Evita zoom automático en iOS */ }
-
-        .destacado { font-weight: bold; }
-        .tipo-visita { background-color: #e8f4fd; }
-        .tipo-comida { background-color: #fff4e5; }
-        .tipo-cena { background-color: #f3e5f5; }
-        .tipo-salida { background-color: #f1f1f1; }
-        
-        .media-row td { background-color: #fcfcfc; text-align: center; padding: 10px; }
-        .img-preview { max-width: 100%; max-height: 200px; display: none; margin: 10px auto; border-radius: 4px; }
-        .audio-player { width: 100%; height: 35px; display: none; margin-top: 5px; }
-        .hidden-input { display: none; }
-        .upload-label { cursor: pointer; color: #3498db; text-decoration: underline; font-size: 0.9em; font-weight: bold; display: block; padding: 5px; }
-
-        .action-btn { padding: 10px 12px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 13px; color: white; min-height: 44px; /* Tamaño táctil Apple */ }
-        .main-nav { margin-bottom: 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%; }
-
-        /* AJUSTES ESPECÍFICOS PARA IPHONE / MÓVIL */
-        @media (max-width: 600px) {
-            .col-time-group { width: 100%; display: flex; flex-direction: column; align-items: flex-end; gap: 5px; }
-            .col-concept-content { padding-left: 125px !important; }
-            .action-btn { font-size: 11px; padding: 8px 5px; }
-            .bloque-dia-header h3 { font-size: 0.9em; }
-            
-            /* Ajuste de la tabla en móvil para que no se desborde */
-            td { font-size: 14px; padding: 6px; }
-            .col-label { width: 50px; font-size: 0.6em; }
+        input[type="time"] { 
+            border: 1px solid #d1d1d6; 
+            border-radius: 5px; 
+            font-size: 16px !important; 
+            width: 75px;
         }
 
-        @media print {
-            .dia-controls, .controls-left, .upload-label, .main-nav, .btn-clear { display: none !important; }
-            .dia-container { border: 1px solid #000; break-inside: avoid; }
-        }
+        .destacado td { font-weight: bold; }
+        .tipo-visita { border-top: 3px solid #007aff; }
+        .tipo-comida { border-top: 3px solid #ff9500; }
+        .tipo-cena { border-top: 3px solid #5856d6; }
+        .tipo-salida { border-top: 3px solid #8e8e93; }
+
+        /* Multimedia */
+        .media-container { text-align: center; padding: 5px; }
+        .img-preview { width: 100%; border-radius: 8px; display: none; margin-top: 5px; }
+        .audio-player { width: 100%; display: none; margin-top: 5px; }
+        .upload-label { color: #007aff; font-size: 12px; font-weight: bold; display: block; padding: 10px; }
     </style>
 </head>
 <body oninput="saveAll()">
 
 <div class="container">
-    <h2 id="titulo-viaje" contenteditable="true" style="text-align:center; margin: 10px 0;">Mi Itinerario</h2>
+    <h2 id="titulo-viaje" contenteditable="true" style="text-align:center">Mi Itinerario</h2>
     
     <div class="main-nav">
-        <button class="action-btn" style="background:#2c3e50; grid-column: span 2;" onclick="addDia()">+ Añadir Día</button>
-        <button class="action-btn" style="background:#2980b9" onclick="exportarDatos()">⬇️ JSON</button>
-        <button class="action-btn" style="background:#2980b9" onclick="document.getElementById('importFile').click()">⬆️ JSON</button>
-        <input type="file" id="importFile" class="hidden-input" accept=".json" onchange="importarDatos(this)">
-        <button class="action-btn" style="background:#555; grid-column: span 2;" onclick="window.print()">🖨️ PDF / Imprimir</button>
+        <button class="action-btn" style="background:#1c1c1e; grid-column: span 2;" onclick="addDia()">+ Añadir Día</button>
+        <button class="action-btn" style="background:#007aff" onclick="exportarDatos()">⬇️ Guardar</button>
+        <button class="action-btn" style="background:#007aff" onclick="document.getElementById('importFile').click()">⬆️ Abrir</button>
+        <input type="file" id="importFile" style="display:none" accept=".json" onchange="importarDatos(this)">
     </div>
 
     <div id="itinerario"></div>
 
-    <div style="margin-top: 40px; border-top: 1px solid #eee; padding-top: 20px; width: 100%;">
-        <button class="action-btn" style="background:#c0392b; width: 100%;" onclick="limpiarTodo()">🗑️ Borrar Todo</button>
-    </div>
+    <button class="action-btn" style="background:#ff3b30; width: 100%; margin-top: 20px;" onclick="limpiarTodo()">🗑️ Borrar Todo</button>
 </div>
 
 <script>
-    // Se mantiene toda tu lógica original de JavaScript intacta
     window.onload = () => {
         const saved = localStorage.getItem('miItinerario');
         const savedTitle = localStorage.getItem('tituloViaje');
@@ -114,13 +159,13 @@
         <div class="dia-container" id="${id}">
             <div class="bloque-dia-header">
                 <h3 contenteditable="true">FECHA: ---</h3>
-                <span style="cursor:pointer; padding: 5px;" onclick="if(confirm('¿Borrar día?')){this.closest('.dia-container').remove();saveAll();}">✕</span>
+                <span onclick="if(confirm('¿Borrar día?')){this.closest('.dia-container').remove();saveAll();}">✕</span>
             </div>
             <div class="dia-controls">
-                <button class="action-btn" style="background:#7f8c8d" onclick="addEvento('${id}', 'solo-salida')">Salida</button>
-                <button class="action-btn" style="background:#27ae60" onclick="addEvento('${id}', 'visita')">Visita</button>
-                <button class="action-btn" style="background:#e67e22" onclick="addEvento('${id}', 'comida')">Comida</button>
-                <button class="action-btn" style="background:#8e44ad" onclick="addEvento('${id}', 'cena')">Cena</button>
+                <button class="action-btn" style="background:#8e8e93" onclick="addEvento('${id}', 'solo-salida')">Salida</button>
+                <button class="action-btn" style="background:#34c759" onclick="addEvento('${id}', 'visita')">Visita</button>
+                <button class="action-btn" style="background:#ff9500" onclick="addEvento('${id}', 'comida')">Comida</button>
+                <button class="action-btn" style="background:#af52de" onclick="addEvento('${id}', 'cena')">Cena</button>
             </div>
             <div class="eventos-lista"></div>
         </div>`;
@@ -135,48 +180,51 @@
     }
 
     function generarHTMLBloque(tipo) {
-        let clase = 'tipo-visita', texto = 'VISITA', dual = true, dur = true;
+        let clase = 'tipo-visita', texto = 'VISITA', dual = true;
         if(tipo === 'comida') { clase = 'tipo-comida'; texto = 'COMIDA'; }
         if(tipo === 'cena') { clase = 'tipo-cena'; texto = 'CENA'; }
-        if(tipo === 'solo-salida') { clase = 'tipo-salida'; texto = 'SALIDA'; dual = false; dur = false; }
+        if(tipo === 'solo-salida') { clase = 'tipo-salida'; texto = 'SALIDA'; dual = false; }
         
         return `
         <div class="bloque">
             <div class="controls-left">
-                <button class="btn-ctrl" style="color:red" onclick="this.closest('.bloque').remove();saveAll();">✕</button>
+                <button class="btn-ctrl" style="color:#ff3b30" onclick="this.closest('.bloque').remove();saveAll();">✕</button>
                 <button class="btn-ctrl" onclick="moveUp(this)">▲</button>
                 <button class="btn-ctrl" onclick="moveDown(this)">▼</button>
             </div>
             <table>
                 <tr class="destacado ${clase}">
-                    <td class="col-label col-concept-content" contenteditable="true"></td>
-                    <td contenteditable="true">${texto}</td>
-                    <td style="text-align:right" contenteditable="true">${dur ? '1h' : ''}</td>
+                    <td colspan="2" contenteditable="true">${texto}</td>
+                    <td style="text-align:right" contenteditable="true">1h</td>
                 </tr>
-                <tr class="row-estrecha">
-                    <td class="col-label" contenteditable="true">${dual ? 'destino' : 'origen'}</td>
-                    <td contenteditable="true">Lugar...</td>
-                    <td class="col-time-group">
-                        <span>L:</span><input type="time" value="00:00" oninput="saveAll()">
-                        ${dual ? '<span>S:</span><input type="time" value="00:00" oninput="saveAll()">' : ''}
+                <tr>
+                    <td class="col-label">Lugar</td>
+                    <td colspan="2" contenteditable="true">...</td>
+                </tr>
+                <tr>
+                    <td class="col-label">Horas</td>
+                    <td colspan="2">
+                        L: <input type="time" value="00:00" oninput="saveAll()">
+                        ${dual ? ' S: <input type="time" value="00:00" oninput="saveAll()">' : ''}
                     </td>
                 </tr>
-                <tr class="row-estrecha">
-                    <td class="col-label" contenteditable="true">datos</td>
-                    <td colspan="2" contenteditable="true">Notas...</td>
-                </tr>
-                <tr class="media-row">
-                    <td></td>
-                    <td>
+                <tr>
+                    <td colspan="3" class="media-container">
                         <label class="upload-label" onclick="this.nextElementSibling.click()">📷 Foto</label>
-                        <input type="file" class="hidden-input" accept="image/*" onchange="previewMedia(this, 'img')">
+                        <input type="file" style="display:none" accept="image/*" onchange="previewMedia(this, 'img')">
                         <img class="img-preview">
                     </td>
-                    <td>
+                </tr>
+                <tr>
+                    <td colspan="3" class="media-container">
                         <label class="upload-label" onclick="this.nextElementSibling.click()">🎤 Audio</label>
-                        <input type="file" class="hidden-input" accept="audio/*" onchange="previewMedia(this, 'aud')">
+                        <input type="file" style="display:none" accept="audio/*" onchange="previewMedia(this, 'aud')">
                         <audio controls class="audio-player"></audio>
                     </td>
+                </tr>
+                <tr>
+                    <td class="col-label">Notas</td>
+                    <td colspan="2" contenteditable="true">...</td>
                 </tr>
             </table>
         </div>`;
@@ -188,9 +236,12 @@
         const reader = new FileReader();
         reader.onload = e => {
             const container = input.parentElement;
+            const label = container.querySelector('.upload-label');
             const element = type === 'img' ? container.querySelector('.img-preview') : container.querySelector('.audio-player');
+            
             element.src = e.target.result;
             element.style.display = 'block';
+            label.style.display = 'none'; // Quita el texto al seleccionar
             saveAll();
         };
         reader.readAsDataURL(file);
@@ -214,7 +265,7 @@
         const blob = new Blob([JSON.stringify(datos)], {type: "application/json"});
         const a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
-        a.download = "itinerario_viaje.json";
+        a.download = "itinerario.json";
         a.click();
     }
 
