@@ -20,17 +20,18 @@
             padding: 12px; border: none; border-radius: 10px; 
             font-weight: 600; font-size: 14px; color: white; 
             display: flex; align-items: center; justify-content: center; min-height: 44px;
+            cursor: pointer; text-decoration: none;
         }
         .dia-container { margin-bottom: 25px; border: 1px solid #d1d1d6; border-radius: 12px; background: #fff; overflow: hidden; }
         .bloque-dia-header { background: #1c1c1e; color: white; padding: 12px 15px; display: flex; justify-content: space-between; align-items: center; }
         .dia-controls { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; padding: 8px; background: #f2f2f7; }
-        .bloque { margin: 10px; border: 1px solid #e5e5ea; border-radius: 10px; position: relative; padding-left: 35px; }
+        .bloque { margin: 10px; border: 1px solid #e5e5ea; border-radius: 10px; position: relative; padding-left: 35px; background: #fff; }
         
         .controls-left { 
             position: absolute; left: 0; top: 0; bottom: 0; width: 30px; 
             display: flex; flex-direction: column; border-right: 1px solid #e5e5ea; background: #f9f9f9;
         }
-        .btn-ctrl { flex: 1; border: none; background: transparent; font-size: 12px; }
+        .btn-ctrl { flex: 1; border: none; background: transparent; font-size: 12px; height: 33.3%; }
 
         table { width: 100%; border-collapse: collapse; table-layout: fixed; }
         td { padding: 8px; border-bottom: 1px solid #f2f2f7; font-size: 14px; vertical-align: middle; }
@@ -38,52 +39,40 @@
         
         .lugar-td { display: flex; align-items: center; justify-content: space-between; }
         .pin-container { display: flex; align-items: center; position: relative; }
-        .pin-map { cursor: pointer; font-size: 20px; filter: grayscale(1); transition: 0.2s; margin-left: auto; }
+        .pin-map { cursor: pointer; font-size: 20px; filter: grayscale(1); transition: 0.2s; }
         .pin-active { filter: grayscale(0) !important; }
         
         .map-popover { 
             display: none; position: absolute; background: white; border: 1px solid #d1d1d6;
             padding: 10px; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-            z-index: 100; width: 220px; right: 0; top: 35px;
+            z-index: 100; width: 200px; right: 0; top: 35px;
         }
         .map-popover input { width: 100%; font-size: 14px; padding: 8px; border-radius: 5px; border: 1px solid #ccc; margin-bottom: 8px; box-sizing: border-box; }
 
-        .time-wrapper { display: flex; justify-content: flex-end; gap: 8px; }
+        .time-wrapper { display: flex; justify-content: flex-end; gap: 4px; }
         input[type="time"] { 
-            border-radius: 6px; font-size: 16px !important; width: 80px; 
-            padding: 4px; background: #fff; border: 2px solid transparent; 
+            border-radius: 6px; font-size: 14px !important; width: 75px; 
+            padding: 2px; background: #fff; border: 1px solid #d1d1d6; 
         }
-        .time-start { border-color: #007aff !important; } 
-        .time-end { border-color: #ff3b30 !important; }
-        .time-dur { border-color: #34c759 !important; width: 70px; }
 
         .destacado td { font-weight: bold; }
         .tipo-visita { border-top: 3px solid #007aff; }
         .tipo-comida { border-top: 3px solid #ff9500; }
         .tipo-cena { border-top: 3px solid #5856d6; }
         .tipo-salida { border-top: 3px solid #8e8e93; }
-        
-        .media-container { text-align: center; padding: 5px; border-bottom: 1px solid #f2f2f7; position: relative; min-height: 40px; }
-        .img-preview { width: 100%; border-radius: 8px; display: none; margin-top: 5px; }
-        .audio-player { width: 100%; display: none; margin-top: 5px; }
-        .upload-label { color: #007aff; font-size: 12px; font-weight: bold; display: block; padding: 10px; cursor: pointer; }
-        .btn-del-media { 
-            position: absolute; top: 5px; right: 5px; background: #ff3b30; 
-            color: white; border: none; border-radius: 50%; width: 24px; height: 24px; 
-            font-size: 14px; display: none; cursor: pointer; z-index: 10; font-weight: bold;
-        }
     </style>
 </head>
-<body onclick="closeAllPopovers(event)" oninput="saveAll()">
+<body onclick="closeAllPopovers(event)">
 
 <div class="container">
-    <h2 id="titulo-viaje" contenteditable="true" style="text-align:center">Mi Itinerario</h2>
+    <h2 id="titulo-viaje" contenteditable="true" style="text-align:center" onblur="saveAll()">Mi Itinerario</h2>
     
     <div class="main-nav">
         <button class="action-btn" style="background:#1c1c1e; grid-column: span 2;" onclick="addDia()">+ Añadir Día</button>
-        <button class="action-btn" style="background:#007aff" onclick="exportarDatos()">⬇️ Guardar</button>
+        <button class="action-btn" style="background:#007aff" onclick="exportarDatos()">⬇️ Guardar PC</button>
         <button class="action-btn" style="background:#5856d6" onclick="sincronizarGitHub()">🔄 Sync GitHub</button>
-        <button class="action-btn" style="background:#8e8e93; grid-column: span 2;" onclick="document.getElementById('importFile').click()">⬆️ Abrir Archivo Local</button>
+        
+        <label for="importFile" class="action-btn" style="background:#8e8e93; grid-column: span 2; text-align:center;">⬆️ Abrir Archivo Local</label>
         <input type="file" id="importFile" style="display:none" accept=".json" onchange="importarDatos(this)">
     </div>
 
@@ -97,41 +86,13 @@
         const saved = localStorage.getItem('miItinerario');
         const savedTitle = localStorage.getItem('tituloViaje');
         if (savedTitle) document.getElementById('titulo-viaje').innerText = savedTitle;
-        if (saved) {
+        if (saved && saved.trim() !== "") {
             document.getElementById('itinerario').innerHTML = saved;
             actualizarEfectos();
-        } else { addDia(); }
+        } else { 
+            addDia(); 
+        }
     };
-
-    async function sincronizarGitHub() {
-        let url = localStorage.getItem('github_url');
-        if (!url) {
-            url = prompt(https://raw.githubusercontent.com/antoniodetm/mi-viaje/refs/heads/main/itinerario_viaje.json);
-            if (url) localStorage.setItem('github_url', url.trim());
-        }
-        if (!url) return;
-
-        try {
-            // Cache buster para forzar descarga fresca
-            const response = await fetch(url + (url.includes('?') ? '&' : '?') + "t=" + Date.now());
-            if (!response.ok) throw new Error("Archivo no encontrado o error de red");
-            
-            const d = await response.json();
-            
-            if (confirm("¿Cargar datos desde GitHub? Esto sobrescribirá lo que ves ahora.")) {
-                document.getElementById('titulo-viaje').innerText = d.titulo;
-                document.getElementById('itinerario').innerHTML = d.cuerpo;
-                actualizarEfectos();
-                saveAll();
-                alert("✅ Sincronizado correctamente.");
-            }
-        } catch (error) {
-            alert("Error: " + error.message);
-            if(confirm("¿Deseas cambiar la URL configurada?")) {
-                localStorage.removeItem('github_url');
-            }
-        }
-    }
 
     function saveAll() {
         document.querySelectorAll('input[type="time"]').forEach(i => i.setAttribute('value', i.value));
@@ -140,80 +101,12 @@
         localStorage.setItem('tituloViaje', document.getElementById('titulo-viaje').innerText);
     }
 
-    function toggleMapInput(btn, event) {
-        event.stopPropagation();
-        const popover = btn.nextElementSibling;
-        const input = popover.querySelector('input');
-        if (btn.classList.contains('pin-active') && input.value) {
-            window.open(input.value, '_blank');
-        } else {
-            popover.style.display = popover.style.display === 'block' ? 'none' : 'block';
-        }
-    }
-
-    function closeAllPopovers(e) {
-        if (!e.target.closest('.map-popover') && !e.target.closest('.pin-map')) {
-            document.querySelectorAll('.map-popover').forEach(p => p.style.display = 'none');
-        }
-    }
-
-    function checkPinStatus(input) {
-        const pin = input.parentElement.previousElementSibling;
-        if (input.value.startsWith('http')) {
-            pin.classList.add('pin-active');
-        } else {
-            pin.classList.remove('pin-active');
-        }
-        saveAll();
-    }
-
-    function actualizarEfectos() {
-        document.querySelectorAll('input[type="time"]').forEach(input => {
-            input.oninput = saveAll;
-            if(input.getAttribute('value')) input.value = input.getAttribute('value');
-        });
-        document.querySelectorAll('.map-url-input').forEach(input => {
-            if(input.getAttribute('value')) input.value = input.getAttribute('value');
-            checkPinStatus(input);
-        });
-    }
-
-    function triggerUpload(el) { el.nextElementSibling.click(); }
-
-    function handleMedia(input, type) {
-        const file = input.files[0];
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = e => {
-            const container = input.parentElement;
-            const preview = type === 'img' ? container.querySelector('.img-preview') : container.querySelector('.audio-player');
-            preview.src = e.target.result;
-            preview.style.display = 'block';
-            container.querySelector('.btn-del-media').style.display = 'block';
-            container.querySelector('.upload-label').style.display = 'none';
-            saveAll();
-        };
-        reader.readAsDataURL(file);
-    }
-
-    function removeMedia(btn) {
-        const container = btn.parentElement;
-        const img = container.querySelector('.img-preview');
-        const aud = container.querySelector('.audio-player');
-        if(img) { img.src = ""; img.style.display = "none"; }
-        if(aud) { aud.src = ""; aud.style.display = "none"; }
-        container.querySelector('input[type="file"]').value = "";
-        btn.style.display = "none";
-        container.querySelector('.upload-label').style.display = "block";
-        saveAll();
-    }
-
     function addDia() {
         const id = "dia-" + Date.now();
         const html = `
         <div class="dia-container" id="${id}">
             <div class="bloque-dia-header">
-                <h3 contenteditable="true">DÍA: ---</h3>
+                <h3 contenteditable="true" onblur="saveAll()">DÍA: ---</h3>
                 <span onclick="if(confirm('¿Borrar día?')){this.closest('.dia-container').remove();saveAll();}">✕</span>
             </div>
             <div class="dia-controls">
@@ -238,13 +131,13 @@
         const html = `
         <div class="bloque">
             <div class="controls-left">
-                <button class="btn-ctrl" style="color:#ff3b30" onclick="this.closest('.bloque').remove();saveAll();">✕</button>
+                <button class="btn-ctrl" style="color:#ff3b30" onclick="if(confirm('¿Borrar?')){this.closest('.bloque').remove();saveAll();}">✕</button>
                 <button class="btn-ctrl" onclick="moveUp(this)">▲</button>
                 <button class="btn-ctrl" onclick="moveDown(this)">▼</button>
             </div>
-            <table>
+            <table oninput="saveAll()">
                 <tr class="destacado ${clase}">
-                    <td colspan="2" contenteditable="true">${texto}</td>
+                    <td colspan="2" contenteditable="true" onblur="saveAll()">${texto}</td>
                     <td style="text-align:right">
                         ${hasDur ? '<input type="time" class="time-dur" value="01:00" oninput="saveAll()">' : ''}
                     </td>
@@ -253,69 +146,56 @@
                     <td class="col-label">Lugar</td>
                     <td colspan="2">
                         <div class="lugar-td">
-                            <span contenteditable="true" style="flex:1">...</span>
+                            <span contenteditable="true" style="flex:1" onblur="saveAll()">...</span>
                             <div class="pin-container">
                                 <span class="pin-map" onclick="toggleMapInput(this, event)">📍</span>
                                 <div class="map-popover">
-                                    <input type="text" class="map-url-input" placeholder="Pegar link..." oninput="checkPinStatus(this)">
-                                    <button class="action-btn" style="background:#34c759; width:100%; min-height:35px; padding:5px; font-size:12px;" onclick="this.parentElement.style.display='none'">Guardar</button>
+                                    <input type="text" class="map-url-input" placeholder="URL Mapa" oninput="checkPinStatus(this)">
+                                    <button class="action-btn" style="background:#34c759; width:100%; min-height:30px; font-size:12px;" onclick="this.parentElement.style.display='none'">OK</button>
                                 </div>
                             </div>
                         </div>
                     </td>
                 </tr>
-                <tr><td class="col-label">Notas</td><td colspan="2" contenteditable="true">...</td></tr>
+                <tr><td class="col-label">Notas</td><td colspan="2" contenteditable="true" onblur="saveAll()">...</td></tr>
                 <tr>
                     <td class="col-label">Horas</td>
                     <td colspan="2">
                         <div class="time-wrapper">
-                            <input type="time" class="time-start" value="00:00" oninput="saveAll()">
-                            ${dual ? '<input type="time" class="time-end" value="00:00" oninput="saveAll()">' : ''}
+                            <input type="time" class="time-start" oninput="saveAll()">
+                            ${dual ? '<input type="time" class="time-end" oninput="saveAll()">' : ''}
                         </div>
-                    </td>
-                </tr>
-                <tr>
-                    <td colspan="3" class="media-container">
-                        <button class="btn-del-media" onclick="removeMedia(this)">✕</button>
-                        <label class="upload-label" onclick="triggerUpload(this)">📷 Foto</label>
-                        <input type="file" style="display:none" accept="image/*" onchange="handleMedia(this, 'img')">
-                        <img class="img-preview">
-                    </td>
-                </tr>
-                <tr>
-                    <td colspan="3" class="media-container">
-                        <button class="btn-del-media" onclick="removeMedia(this)">✕</button>
-                        <label class="upload-label" onclick="triggerUpload(this)">🎤 Audio</label>
-                        <input type="file" style="display:none" accept="audio/*" onchange="handleMedia(this, 'aud')">
-                        <audio controls class="audio-player"></audio>
                     </td>
                 </tr>
             </table>
         </div>`;
         lista.insertAdjacentHTML('beforeend', html);
+        actualizarEfectos();
         saveAll();
     }
 
-    function moveUp(btn) {
-        const current = btn.closest('.bloque');
-        const prev = current.previousElementSibling;
-        if (prev) { current.parentNode.insertBefore(current, prev); saveAll(); }
+    async function sincronizarGitHub() {
+        let url = localStorage.getItem('github_url');
+        if (!url) {
+            url = prompt("Pega la URL 'Raw' de GitHub:");
+            if (url) localStorage.setItem('github_url', url.trim());
+        }
+        if (!url) return;
+        try {
+            const response = await fetch(url + "?t=" + Date.now());
+            const d = await response.json();
+            if (confirm("¿Cargar datos de GitHub?")) {
+                document.getElementById('titulo-viaje').innerText = d.titulo;
+                document.getElementById('itinerario').innerHTML = d.cuerpo;
+                actualizarEfectos();
+                saveAll();
+                alert("Sincronizado");
+            }
+        } catch (e) { alert("Error al sincronizar"); localStorage.removeItem('github_url'); }
     }
-    function moveDown(btn) {
-        const current = btn.closest('.bloque');
-        const next = current.nextElementSibling;
-        if (next) { current.parentNode.insertBefore(next, current); saveAll(); }
-    }
-    function exportarDatos() {
-        saveAll();
-        const datos = { titulo: document.getElementById('titulo-viaje').innerText, cuerpo: document.getElementById('itinerario').innerHTML };
-        const blob = new Blob([JSON.stringify(datos)], {type: "application/json"});
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
-        a.download = "itinerario_viaje.json";
-        a.click();
-    }
+
     function importarDatos(input) {
+        if (!input.files[0]) return;
         const reader = new FileReader();
         reader.onload = e => {
             const d = JSON.parse(e.target.result);
@@ -326,6 +206,57 @@
         };
         reader.readAsText(input.files[0]);
     }
+
+    function toggleMapInput(btn, event) {
+        event.stopPropagation();
+        const popover = btn.nextElementSibling;
+        const input = popover.querySelector('input');
+        if (btn.classList.contains('pin-active') && input.value) {
+            window.open(input.value, '_blank');
+        } else {
+            document.querySelectorAll('.map-popover').forEach(p => p.style.display = 'none');
+            popover.style.display = 'block';
+        }
+    }
+
+    function checkPinStatus(input) {
+        const pin = input.parentElement.previousElementSibling;
+        pin.classList.toggle('pin-active', input.value.startsWith('http'));
+        saveAll();
+    }
+
+    function closeAllPopovers(e) {
+        if (!e.target.closest('.map-popover') && !e.target.closest('.pin-map')) {
+            document.querySelectorAll('.map-popover').forEach(p => p.style.display = 'none');
+        }
+    }
+
+    function actualizarEfectos() {
+        document.querySelectorAll('.map-url-input').forEach(input => checkPinStatus(input));
+    }
+
+    function moveUp(btn) {
+        const current = btn.closest('.bloque');
+        const prev = current.previousElementSibling;
+        if (prev) { current.parentNode.insertBefore(current, prev); saveAll(); }
+    }
+
+    function moveDown(btn) {
+        const current = btn.closest('.bloque');
+        const next = current.nextElementSibling;
+        if (next) { current.parentNode.insertBefore(next, current); saveAll(); }
+    }
+
+    function exportarDatos() {
+        saveAll();
+        const datos = { titulo: document.getElementById('titulo-viaje').innerText, cuerpo: document.getElementById('itinerario').innerHTML };
+        const blob = new Blob([JSON.stringify(datos)], {type: "application/json"});
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = "itinerario_viaje.json";
+        a.click();
+    }
+
     function limpiarTodo() { if(confirm("¿Borrar todo?")) { localStorage.clear(); location.reload(); } }
 </script>
 </body>
