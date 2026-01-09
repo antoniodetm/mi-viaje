@@ -62,10 +62,21 @@
         }
         .map-popover input { width: 100%; font-size: 14px; padding: 8px; border-radius: 5px; border: 1px solid #ccc; margin-bottom: 8px; box-sizing: border-box; }
 
-        /* Estilo para los links en Notas */
-        .notas-cell a { color: #007aff; text-decoration: underline; }
+        /* ESTILO DE BOTÓN PARA EL LINK EN NOTAS */
+        .link-btn {
+            display: inline-block;
+            background: #007aff;
+            color: white !important;
+            padding: 4px 10px;
+            border-radius: 6px;
+            text-decoration: none !important;
+            font-size: 11px;
+            font-weight: bold;
+            margin: 4px 0;
+            box-shadow: 0 2px 5px rgba(0,122,255,0.3);
+        }
 
-        .media-preview img { width: 100%; border-radius: 8px; margin-top: 8px; display: block; }
+        .media-preview img { width: 100%; height: auto; border-radius: 8px; margin-top: 8px; display: block; }
         audio { width: 100%; margin-top: 8px; }
         
         .file-input-label { 
@@ -119,15 +130,18 @@
         }
     }
 
+    // FUNCIÓN PARA CONVERTIR LINK EN BOTÓN
     function linkify(el) {
         const text = el.innerText;
         const urlRegex = /(https?:\/\/[^\s]+|www\.[^\s]+)/g;
         const linkedText = text.replace(urlRegex, function(url) {
             let href = url;
             if (!url.startsWith('http')) href = 'http://' + url;
-            return `<a href="${href}" target="_blank" onclick="event.stopPropagation()">${url}</a>`;
+            return `<a href="${href}" target="_blank" class="link-btn" contenteditable="false" onclick="event.stopPropagation()">🔗 ABRIR ENLACE</a>`;
         });
-        if (linkedText !== text) el.innerHTML = linkedText;
+        if (linkedText !== text) {
+            el.innerHTML = linkedText + " " + text.replace(urlRegex, ""); // Mantiene el botón y el resto del texto
+        }
         saveAll();
     }
 
