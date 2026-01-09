@@ -38,10 +38,16 @@
         .col-label { width: 55px; font-size: 10px; color: #8e8e93; text-transform: uppercase; font-weight: bold; }
         
         .lugar-td { display: flex; align-items: center; justify-content: space-between; }
-        .pin-container { display: flex; align-items: center; position: relative; }
+        .pin-container { display: flex; align-items: center; position: relative; gap: 5px; }
         .pin-map { cursor: pointer; font-size: 22px; filter: grayscale(1); transition: 0.2s; padding: 5px; }
         .pin-active { filter: grayscale(0) !important; scale: 1.1; }
         
+        /* Estilo para la cruz de borrar/editar */
+        .pin-edit-btn { 
+            cursor: pointer; color: #ff3b30; font-weight: bold; font-size: 18px; 
+            padding: 5px; line-height: 1; 
+        }
+
         .map-popover { 
             display: none; position: absolute; background: white; border: 1px solid #d1d1d6;
             padding: 10px; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);
@@ -96,24 +102,31 @@
         localStorage.setItem('tituloViaje', document.getElementById('titulo-viaje').innerText);
     }
 
-    // --- NUEVA LÓGICA DE CHINCHETA (SINGLE Y DOUBLE CLICK) ---
+    // --- NUEVA LÓGICA DE MAPA ---
+    
     function handlePinClick(btn, event) {
         event.stopPropagation();
         const popover = btn.nextElementSibling;
         const input = popover.querySelector('input');
-        
-        // Si es un doble click (o si el popover ya está abierto), forzamos edición
-        if (event.detail === 2) {
-            abrirEditorMapa(popover);
-            return;
-        }
 
-        // Si hay URL y no estamos en modo edición, abrimos el mapa
+        // Si ya hay una URL válida, abrimos el mapa directamente
         if (btn.classList.contains('pin-active') && input.value) {
             window.open(input.value, '_blank');
         } else {
+            // Si no hay URL, abrimos el editor
             abrirEditorMapa(popover);
         }
+    }
+
+    function resetMap(btn, event) {
+        event.stopPropagation();
+        const container = btn.parentElement;
+        const input = container.querySelector('.map-url-input');
+        const popover = container.querySelector('.map-popover');
+        
+        input.value = ""; // Borramos la URL
+        checkPinStatus(input); // Actualizamos estado de la chincheta
+        abrirEditorMapa(popover); // Abrimos para pedir nueva URL
     }
 
     function abrirEditorMapa(popover) {
@@ -123,16 +136,15 @@
     }
 
     function checkPinStatus(input) {
-    const pin = input.parentElement.previousElementSibling;
-    const val = input.value.trim();
-    // Ahora acepta enlaces de Maps normal, My Maps y enlaces cortos (goo.gl)
-    if (val.includes('maps') || val.includes('goo.gl')) {
-        pin.classList.add('pin-active');
-    } else {
-        pin.classList.remove('pin-active');
+        const pin = input.parentElement.previousElementSibling;
+        const val = input.value.trim();
+        if (val.includes('maps') || val.includes('goo.gl')) {
+            pin.classList.add('pin-active');
+        } else {
+            pin.classList.remove('pin-active');
+        }
+        saveAll();
     }
-    saveAll();
-}
 
     // --- RESTO DE FUNCIONES ---
 
@@ -208,9 +220,10 @@
                         <div class="lugar-td">
                             <span contenteditable="true" style="flex:1" onblur="saveAll()">...</span>
                             <div class="pin-container">
+                                <span class="pin-edit-btn" onclick="resetMap(this, event)">✕</span>
                                 <span class="pin-map" onclick="handlePinClick(this, event)">📍</span>
                                 <div class="map-popover">
-                                    <input type="text" class="map-url-input" placeholder="Pegar URL o borrar..." oninput="checkPinStatus(this)">
+                                    <input type="text" class="map-url-input" placeholder="Pegar URL de Maps..." oninput="checkPinStatus(this)">
                                     <button class="action-btn" style="background:#34c759; width:100%; min-height:30px; font-size:12px;" onclick="this.parentElement.style.display='none'">Guardar</button>
                                 </div>
                             </div>
@@ -235,7 +248,7 @@
     }
 
     function closeAllPopovers(e) {
-        if (!e.target.closest('.map-popover') && !e.target.closest('.pin-map')) {
+        if (!e.target.closest('.map-popover') && !e.target.closest('.pin-map') && !e.target.closest('.pin-edit-btn')) {
             document.querySelectorAll('.map-popover').forEach(p => p.style.display = 'none');
         }
     }
