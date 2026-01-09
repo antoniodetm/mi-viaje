@@ -39,13 +39,13 @@
         
         .lugar-td { display: flex; align-items: center; justify-content: space-between; }
         .pin-container { display: flex; align-items: center; position: relative; }
-        .pin-map { cursor: pointer; font-size: 20px; filter: grayscale(1); transition: 0.2s; }
-        .pin-active { filter: grayscale(0) !important; }
+        .pin-map { cursor: pointer; font-size: 22px; filter: grayscale(1); transition: 0.2s; padding: 5px; }
+        .pin-active { filter: grayscale(0) !important; scale: 1.1; }
         
         .map-popover { 
             display: none; position: absolute; background: white; border: 1px solid #d1d1d6;
             padding: 10px; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-            z-index: 100; width: 200px; right: 0; top: 35px;
+            z-index: 100; width: 220px; right: 0; top: 40px;
         }
         .map-popover input { width: 100%; font-size: 14px; padding: 8px; border-radius: 5px; border: 1px solid #ccc; margin-bottom: 8px; box-sizing: border-box; }
 
@@ -75,7 +75,7 @@
 
     <div id="itinerario"></div>
 
-    <button class="action-btn" style="background:#ff3b30; width: 100%; margin-top: 20px;" onclick="limpiarTodo()">🗑️ Borrar Caché</button>
+    <button class="action-btn" style="background:#ff3b30; width: 100%; margin-top: 20px;" onclick="limpiarTodo()">🗑️ Borrar Todo</button>
 </div>
 
 <script>
@@ -96,37 +96,67 @@
         localStorage.setItem('tituloViaje', document.getElementById('titulo-viaje').innerText);
     }
 
-    async function sincronizarGitHub() {
-        let url = localStorage.getItem('github_url');
-
-        if (!url || url === "null") {
-            url = prompt("Pega la URL 'Raw' de tu itinerario_viaje.json en GitHub:");
-            if (url) localStorage.setItem('github_url', url.trim());
+    // --- NUEVA LÓGICA DE CHINCHETA (SINGLE Y DOUBLE CLICK) ---
+    function handlePinClick(btn, event) {
+        event.stopPropagation();
+        const popover = btn.nextElementSibling;
+        const input = popover.querySelector('input');
+        
+        // Si es un doble click (o si el popover ya está abierto), forzamos edición
+        if (event.detail === 2) {
+            abrirEditorMapa(popover);
+            return;
         }
 
+        // Si hay URL y no estamos en modo edición, abrimos el mapa
+        if (btn.classList.contains('pin-active') && input.value) {
+            window.open(input.value, '_blank');
+        } else {
+            abrirEditorMapa(popover);
+        }
+    }
+
+    function abrirEditorMapa(popover) {
+        document.querySelectorAll('.map-popover').forEach(p => p.style.display = 'none');
+        popover.style.display = 'block';
+        popover.querySelector('input').focus();
+    }
+
+    function checkPinStatus(input) {
+        const pin = input.parentElement.previousElementSibling;
+        const val = input.value.trim();
+        if (val.startsWith('http')) {
+            pin.classList.add('pin-active');
+        } else {
+            pin.classList.remove('pin-active');
+        }
+        saveAll();
+    }
+
+    // --- RESTO DE FUNCIONES ---
+
+    async function sincronizarGitHub() {
+        let url = localStorage.getItem('github_url');
+        if (!url || url === "null") {
+            url = prompt("Pega la URL 'Raw' de GitHub:");
+            if (url) localStorage.setItem('github_url', url.trim());
+        }
         if (!url) return;
-
         try {
-            // Añadimos cache buster para iPhone
             const finalUrl = url + (url.includes('?') ? '&' : '?') + "cb=" + Date.now();
-            
             const response = await fetch(finalUrl);
-            if (!response.ok) throw new Error("No se pudo acceder al archivo. Verifica la URL.");
-
+            if (!response.ok) throw new Error("Error de conexión");
             const d = await response.json();
-            
-            if (confirm("¡Archivo encontrado! ¿Actualizar el itinerario en el móvil?")) {
-                document.getElementById('titulo-viaje').innerText = d.titulo || "Mi Itinerario";
-                document.getElementById('itinerario').innerHTML = d.cuerpo || "";
+            if (confirm("¿Actualizar itinerario?")) {
+                document.getElementById('titulo-viaje').innerText = d.titulo;
+                document.getElementById('itinerario').innerHTML = d.cuerpo;
                 actualizarEfectos();
                 saveAll();
-                alert("✅ Sincronizado con éxito.");
+                alert("✅ Sincronizado");
             }
         } catch (e) {
-            alert("❌ Error: " + e.message);
-            if (confirm("¿Quieres volver a introducir la URL?")) {
-                localStorage.removeItem('github_url');
-            }
+            alert("❌ Error al sincronizar");
+            localStorage.removeItem('github_url');
         }
     }
 
@@ -177,10 +207,10 @@
                         <div class="lugar-td">
                             <span contenteditable="true" style="flex:1" onblur="saveAll()">...</span>
                             <div class="pin-container">
-                                <span class="pin-map" onclick="toggleMapInput(this, event)">📍</span>
+                                <span class="pin-map" onclick="handlePinClick(this, event)">📍</span>
                                 <div class="map-popover">
-                                    <input type="text" class="map-url-input" placeholder="URL Mapa" oninput="checkPinStatus(this)">
-                                    <button class="action-btn" style="background:#34c759; width:100%; min-height:30px; font-size:12px;" onclick="this.parentElement.style.display='none'">OK</button>
+                                    <input type="text" class="map-url-input" placeholder="Pegar URL o borrar..." oninput="checkPinStatus(this)">
+                                    <button class="action-btn" style="background:#34c759; width:100%; min-height:30px; font-size:12px;" onclick="this.parentElement.style.display='none'">Guardar</button>
                                 </div>
                             </div>
                         </div>
@@ -203,24 +233,6 @@
         saveAll();
     }
 
-    function toggleMapInput(btn, event) {
-        event.stopPropagation();
-        const popover = btn.nextElementSibling;
-        const input = popover.querySelector('input');
-        if (btn.classList.contains('pin-active') && input.value) {
-            window.open(input.value, '_blank');
-        } else {
-            document.querySelectorAll('.map-popover').forEach(p => p.style.display = 'none');
-            popover.style.display = 'block';
-        }
-    }
-
-    function checkPinStatus(input) {
-        const pin = input.parentElement.previousElementSibling;
-        pin.classList.toggle('pin-active', input.value && input.value.startsWith('http'));
-        saveAll();
-    }
-
     function closeAllPopovers(e) {
         if (!e.target.closest('.map-popover') && !e.target.closest('.pin-map')) {
             document.querySelectorAll('.map-popover').forEach(p => p.style.display = 'none');
@@ -231,9 +243,6 @@
         document.querySelectorAll('.map-url-input').forEach(input => {
             checkPinStatus(input);
             input.oninput = () => checkPinStatus(input);
-        });
-        document.querySelectorAll('input[type="time"]').forEach(input => {
-            if(input.getAttribute('value')) input.value = input.getAttribute('value');
         });
     }
 
@@ -246,10 +255,8 @@
             document.getElementById('itinerario').innerHTML = d.cuerpo;
             actualizarEfectos();
             saveAll();
-            alert("✅ Archivo cargado");
         };
         reader.readAsText(input.files[0]);
-        input.value = "";
     }
 
     function moveUp(btn) {
