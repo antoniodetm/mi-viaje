@@ -106,7 +106,7 @@
     async function sincronizarGitHub() {
         let url = localStorage.getItem('github_url');
         if (!url) {
-            url = prompt("Introduce la URL 'Raw' de tu itinerario_viaje.json en GitHub:");
+            url = prompt("https://raw.githubusercontent.com/antoniodetm/mi-viaje/refs/heads/main/itinerario_viaje.json");
             if (url) localStorage.setItem('github_url', url.trim());
         }
         if (!url) return;
