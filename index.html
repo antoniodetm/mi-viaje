@@ -98,46 +98,34 @@
 
     async function sincronizarGitHub() {
         let url = localStorage.getItem('github_url');
-        let token = localStorage.getItem('github_token');
 
         if (!url || url === "null") {
-            url = prompt("1. Pega la URL 'Raw' de GitHub:");
+            url = prompt("Pega la URL 'Raw' de tu itinerario_viaje.json en GitHub:");
             if (url) localStorage.setItem('github_url', url.trim());
-        }
-
-        if (!token && url && !url.includes("token=")) {
-            if (confirm("¿Es un repositorio PRIVADO?")) {
-                token = prompt("2. Pega tu Personal Access Token:");
-                if (token) localStorage.setItem('github_token', token.trim());
-            }
         }
 
         if (!url) return;
 
         try {
-            const headers = {};
-            if (token) headers["Authorization"] = `token ${token}`;
-
-            // Cache buster para iPhone
+            // Añadimos cache buster para iPhone
             const finalUrl = url + (url.includes('?') ? '&' : '?') + "cb=" + Date.now();
             
-            const response = await fetch(finalUrl, { headers: headers });
-            if (!response.ok) throw new Error("Error " + response.status + ": No se pudo acceder.");
+            const response = await fetch(finalUrl);
+            if (!response.ok) throw new Error("No se pudo acceder al archivo. Verifica la URL.");
 
             const d = await response.json();
             
-            if (confirm("¡Archivo descargado! ¿Actualizar el itinerario?")) {
+            if (confirm("¡Archivo encontrado! ¿Actualizar el itinerario en el móvil?")) {
                 document.getElementById('titulo-viaje').innerText = d.titulo || "Mi Itinerario";
                 document.getElementById('itinerario').innerHTML = d.cuerpo || "";
                 actualizarEfectos();
                 saveAll();
-                alert("✅ Sincronizado");
+                alert("✅ Sincronizado con éxito.");
             }
         } catch (e) {
             alert("❌ Error: " + e.message);
-            if (confirm("¿Quieres restablecer la configuración de GitHub?")) {
+            if (confirm("¿Quieres volver a introducir la URL?")) {
                 localStorage.removeItem('github_url');
-                localStorage.removeItem('github_token');
             }
         }
     }
@@ -258,7 +246,7 @@
             document.getElementById('itinerario').innerHTML = d.cuerpo;
             actualizarEfectos();
             saveAll();
-            alert("✅ Archivo local cargado");
+            alert("✅ Archivo cargado");
         };
         reader.readAsText(input.files[0]);
         input.value = "";
