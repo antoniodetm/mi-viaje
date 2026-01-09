@@ -123,15 +123,16 @@
     }
 
     function checkPinStatus(input) {
-        const pin = input.parentElement.previousElementSibling;
-        const val = input.value.trim();
-        if (val.startsWith('http')) {
-            pin.classList.add('pin-active');
-        } else {
-            pin.classList.remove('pin-active');
-        }
-        saveAll();
+    const pin = input.parentElement.previousElementSibling;
+    const val = input.value.trim();
+    // Ahora acepta enlaces de Maps normal, My Maps y enlaces cortos (goo.gl)
+    if (val.includes('maps') || val.includes('goo.gl')) {
+        pin.classList.add('pin-active');
+    } else {
+        pin.classList.remove('pin-active');
     }
+    saveAll();
+}
 
     // --- RESTO DE FUNCIONES ---
 
