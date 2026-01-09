@@ -20,7 +20,7 @@
             padding: 12px; border: none; border-radius: 10px; 
             font-weight: 600; font-size: 14px; color: white; 
             display: flex; align-items: center; justify-content: center; min-height: 44px;
-            cursor: pointer; text-decoration: none;
+            cursor: pointer; text-decoration: none; text-align: center;
         }
         .dia-container { margin-bottom: 25px; border: 1px solid #d1d1d6; border-radius: 12px; background: #fff; overflow: hidden; }
         .bloque-dia-header { background: #1c1c1e; color: white; padding: 12px 15px; display: flex; justify-content: space-between; align-items: center; }
@@ -50,10 +50,7 @@
         .map-popover input { width: 100%; font-size: 14px; padding: 8px; border-radius: 5px; border: 1px solid #ccc; margin-bottom: 8px; box-sizing: border-box; }
 
         .time-wrapper { display: flex; justify-content: flex-end; gap: 4px; }
-        input[type="time"] { 
-            border-radius: 6px; font-size: 14px !important; width: 75px; 
-            padding: 2px; background: #fff; border: 1px solid #d1d1d6; 
-        }
+        input[type="time"] { border-radius: 6px; font-size: 14px !important; width: 75px; padding: 2px; border: 1px solid #d1d1d6; }
 
         .destacado td { font-weight: bold; }
         .tipo-visita { border-top: 3px solid #007aff; }
@@ -72,13 +69,13 @@
         <button class="action-btn" style="background:#007aff" onclick="exportarDatos()">⬇️ Guardar PC</button>
         <button class="action-btn" style="background:#5856d6" onclick="sincronizarGitHub()">🔄 Sync GitHub</button>
         
-        <label for="importFile" class="action-btn" style="background:#8e8e93; grid-column: span 2; text-align:center;">⬆️ Abrir Archivo Local</label>
+        <label for="importFile" class="action-btn" style="background:#8e8e93; grid-column: span 2;">⬆️ Abrir Archivo Local</label>
         <input type="file" id="importFile" style="display:none" accept=".json" onchange="importarDatos(this)">
     </div>
 
     <div id="itinerario"></div>
 
-    <button class="action-btn" style="background:#ff3b30; width: 100%; margin-top: 20px;" onclick="limpiarTodo()">🗑️ Borrar Todo</button>
+    <button class="action-btn" style="background:#ff3b30; width: 100%; margin-top: 20px;" onclick="limpiarTodo()">🗑️ Borrar Caché</button>
 </div>
 
 <script>
@@ -89,9 +86,7 @@
         if (saved && saved.trim() !== "") {
             document.getElementById('itinerario').innerHTML = saved;
             actualizarEfectos();
-        } else { 
-            addDia(); 
-        }
+        } else { addDia(); }
     };
 
     function saveAll() {
@@ -99,6 +94,52 @@
         document.querySelectorAll('.map-url-input').forEach(i => i.setAttribute('value', i.value));
         localStorage.setItem('miItinerario', document.getElementById('itinerario').innerHTML);
         localStorage.setItem('tituloViaje', document.getElementById('titulo-viaje').innerText);
+    }
+
+    async function sincronizarGitHub() {
+        let url = localStorage.getItem('github_url');
+        let token = localStorage.getItem('github_token');
+
+        if (!url || url === "null") {
+            url = prompt("1. Pega la URL 'Raw' de GitHub:");
+            if (url) localStorage.setItem('github_url', url.trim());
+        }
+
+        if (!token && url && !url.includes("token=")) {
+            if (confirm("¿Es un repositorio PRIVADO?")) {
+                token = prompt("2. Pega tu Personal Access Token:");
+                if (token) localStorage.setItem('github_token', token.trim());
+            }
+        }
+
+        if (!url) return;
+
+        try {
+            const headers = {};
+            if (token) headers["Authorization"] = `token ${token}`;
+
+            // Cache buster para iPhone
+            const finalUrl = url + (url.includes('?') ? '&' : '?') + "cb=" + Date.now();
+            
+            const response = await fetch(finalUrl, { headers: headers });
+            if (!response.ok) throw new Error("Error " + response.status + ": No se pudo acceder.");
+
+            const d = await response.json();
+            
+            if (confirm("¡Archivo descargado! ¿Actualizar el itinerario?")) {
+                document.getElementById('titulo-viaje').innerText = d.titulo || "Mi Itinerario";
+                document.getElementById('itinerario').innerHTML = d.cuerpo || "";
+                actualizarEfectos();
+                saveAll();
+                alert("✅ Sincronizado");
+            }
+        } catch (e) {
+            alert("❌ Error: " + e.message);
+            if (confirm("¿Quieres restablecer la configuración de GitHub?")) {
+                localStorage.removeItem('github_url');
+                localStorage.removeItem('github_token');
+            }
+        }
     }
 
     function addDia() {
@@ -174,39 +215,6 @@
         saveAll();
     }
 
-    async function sincronizarGitHub() {
-        let url = localStorage.getItem('github_url');
-        if (!url) {
-            url = prompt("Pega la URL 'Raw' de GitHub:");
-            if (url) localStorage.setItem('github_url', url.trim());
-        }
-        if (!url) return;
-        try {
-            const response = await fetch(url + "?t=" + Date.now());
-            const d = await response.json();
-            if (confirm("¿Cargar datos de GitHub?")) {
-                document.getElementById('titulo-viaje').innerText = d.titulo;
-                document.getElementById('itinerario').innerHTML = d.cuerpo;
-                actualizarEfectos();
-                saveAll();
-                alert("Sincronizado");
-            }
-        } catch (e) { alert("Error al sincronizar"); localStorage.removeItem('github_url'); }
-    }
-
-    function importarDatos(input) {
-        if (!input.files[0]) return;
-        const reader = new FileReader();
-        reader.onload = e => {
-            const d = JSON.parse(e.target.result);
-            document.getElementById('titulo-viaje').innerText = d.titulo;
-            document.getElementById('itinerario').innerHTML = d.cuerpo;
-            actualizarEfectos();
-            saveAll();
-        };
-        reader.readAsText(input.files[0]);
-    }
-
     function toggleMapInput(btn, event) {
         event.stopPropagation();
         const popover = btn.nextElementSibling;
@@ -221,7 +229,7 @@
 
     function checkPinStatus(input) {
         const pin = input.parentElement.previousElementSibling;
-        pin.classList.toggle('pin-active', input.value.startsWith('http'));
+        pin.classList.toggle('pin-active', input.value && input.value.startsWith('http'));
         saveAll();
     }
 
@@ -232,7 +240,28 @@
     }
 
     function actualizarEfectos() {
-        document.querySelectorAll('.map-url-input').forEach(input => checkPinStatus(input));
+        document.querySelectorAll('.map-url-input').forEach(input => {
+            checkPinStatus(input);
+            input.oninput = () => checkPinStatus(input);
+        });
+        document.querySelectorAll('input[type="time"]').forEach(input => {
+            if(input.getAttribute('value')) input.value = input.getAttribute('value');
+        });
+    }
+
+    function importarDatos(input) {
+        if (!input.files[0]) return;
+        const reader = new FileReader();
+        reader.onload = e => {
+            const d = JSON.parse(e.target.result);
+            document.getElementById('titulo-viaje').innerText = d.titulo;
+            document.getElementById('itinerario').innerHTML = d.cuerpo;
+            actualizarEfectos();
+            saveAll();
+            alert("✅ Archivo local cargado");
+        };
+        reader.readAsText(input.files[0]);
+        input.value = "";
     }
 
     function moveUp(btn) {
