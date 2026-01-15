@@ -278,39 +278,30 @@
     function actualizarEfectos() { document.querySelectorAll('.map-url-input').forEach(input => checkPinStatus(input)); }
     function moveUp(btn) { const c = btn.closest('.bloque'); if (c.previousElementSibling) { c.parentNode.insertBefore(c, c.previousElementSibling); saveAll(); } }
     function moveDown(btn) { const c = btn.closest('.bloque'); if (c.nextElementSibling) { c.parentNode.insertBefore(c.nextElementSibling, c); saveAll(); } }
-    function exportarDatos() { saveAll(); const d = { titulo: document.getElementById('titulo-viaje').innerText, cuerpo: document.getElementById('itinerario').innerHTML }; const blob = new Blob([JSON.stringify(d)], {type: "application/json"}); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `${document.getElementById('titulo-viaje').innerText.toLowerCase().replace(/\s+/g, '-')}.json`; a.click(); }
+    function exportarDatos() { saveAll(); const d = { titulo: document.getElementById('titulo-viaje').innerText, cuerpo: document.getElementById('itinerario').innerHTML }; const blob = new Blob([JSON.stringify(d)], {type: "application/json"}); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = "itinerario.json"; a.click(); }
     function importarDatos(input) { if (!input.files[0]) return; const r = new FileReader(); r.onload = e => { const d = JSON.parse(e.target.result); document.getElementById('titulo-viaje').innerText = d.titulo; document.getElementById('itinerario').innerHTML = d.cuerpo; actualizarEfectos(); saveAll(); }; r.readAsText(input.files[0]); }
     function limpiarTodo() { if(confirm("¿Borrar todo?")) { localStorage.clear(); location.reload(); } }
     
     async function sincronizarGitHub() {
-        let baseUrl = localStorage.getItem('github_base_url');
-        if (!baseUrl || baseUrl === "null") { 
-            baseUrl = prompt("Introduce la URL base de tu GitHub (ej: https://raw.githubusercontent.com/usuario/repo/main/):"); 
-            if (baseUrl) {
-                if (!baseUrl.endsWith('/')) baseUrl += '/';
-                localStorage.setItem('github_base_url', baseUrl.trim()); 
-            }
+        let url = localStorage.getItem('github_url');
+        if (!url || url === "null") { 
+            url = prompt("URL 'Raw' de GitHub:"); 
+            if (url) localStorage.setItem('github_url', url.trim()); 
         }
-        if (!baseUrl) return;
-
-        // Limpiar el título para formar el nombre del archivo
-        const titulo = document.getElementById('titulo-viaje').innerText.toLowerCase().trim().replace(/\s+/g, '-');
-        const finalUrl = `${baseUrl}${titulo}.json`;
-
+        if (!url) return;
         try {
-            const response = await fetch(finalUrl + "?cb=" + Date.now());
-            if (!response.ok) throw new Error();
+            const response = await fetch(url + "?cb=" + Date.now());
             const d = await response.json();
-            if (confirm(`¿Actualizar itinerario desde "${titulo}.json"?`)) { 
+            if (confirm("¿Actualizar?")) { 
                 document.getElementById('titulo-viaje').innerText = d.titulo; 
                 document.getElementById('itinerario').innerHTML = d.cuerpo; 
                 actualizarEfectos(); 
                 saveAll(); 
-                alert("✅ Sincronizado"); 
+                alert("✅"); 
             }
         } catch (e) { 
-            alert(`❌ No se encontró: ${titulo}.json\nVerifica la URL base o el nombre.`); 
-            if(confirm("¿Quieres cambiar la URL base?")) localStorage.removeItem('github_base_url');
+            alert("❌"); 
+            localStorage.removeItem('github_url'); 
         }
     }
 </script>
