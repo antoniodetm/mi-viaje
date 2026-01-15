@@ -62,17 +62,10 @@
         }
         .map-popover input { width: 100%; font-size: 14px; padding: 8px; border-radius: 5px; border: 1px solid #ccc; margin-bottom: 8px; box-sizing: border-box; }
 
-        /* ESTILO DE BOTÓN PARA EL LINK EN NOTAS */
         .link-btn {
-            display: inline-block;
-            background: #007aff;
-            color: white !important;
-            padding: 4px 10px;
-            border-radius: 6px;
-            text-decoration: none !important;
-            font-size: 11px;
-            font-weight: bold;
-            margin: 4px 0;
+            display: inline-block; background: #007aff; color: white !important;
+            padding: 4px 10px; border-radius: 6px; text-decoration: none !important;
+            font-size: 11px; font-weight: bold; margin: 4px 0;
             box-shadow: 0 2px 5px rgba(0,122,255,0.3);
         }
 
@@ -85,12 +78,20 @@
         }
         .btn-delete-media { background: #ff3b30 !important; color: white !important; }
 
-        input[type="time"] { border-radius: 6px; font-size: 13px !important; width: 68px; padding: 2px; border: 1px solid #d1d1d6; }
+        input[type="time"] { 
+            border-radius: 6px; font-size: 16px !important; width: 100px; 
+            padding: 4px; border: 1px solid #d1d1d6; font-family: inherit;
+        }
+
         .destacado td { font-weight: bold; }
         .tipo-visita { border-top: 3px solid #007aff; }
         .tipo-comida { border-top: 3px solid #ff9500; }
         .tipo-cena { border-top: 3px solid #5856d6; }
         .tipo-salida { border-top: 3px solid #8e8e93; }
+
+        .time-wrapper {
+            display: flex; align-items: center; justify-content: flex-end;
+        }
     </style>
 </head>
 <body onclick="closeAllPopovers(event)">
@@ -130,7 +131,6 @@
         }
     }
 
-    // FUNCIÓN PARA CONVERTIR LINK EN BOTÓN
     function linkify(el) {
         const text = el.innerText;
         const urlRegex = /(https?:\/\/[^\s]+|www\.[^\s]+)/g;
@@ -140,7 +140,7 @@
             return `<a href="${href}" target="_blank" class="link-btn" contenteditable="false" onclick="event.stopPropagation()">🔗 ABRIR ENLACE</a>`;
         });
         if (linkedText !== text) {
-            el.innerHTML = linkedText + " " + text.replace(urlRegex, ""); // Mantiene el botón y el resto del texto
+            el.innerHTML = linkedText + " " + text.replace(urlRegex, "");
         }
         saveAll();
     }
@@ -238,8 +238,13 @@
                 <button class="btn-ctrl" onclick="moveDown(this)">▼</button>
             </div>
             <table oninput="saveAll()">
-                <tr class="destacado ${clase}"><td colspan="2" contenteditable="true" onfocus="clearDefault(this)">${texto}</td>
-                    <td style="text-align:right">${dual ? '<input type="time" class="time-dur" value="01:00">' : ''}</td>
+                <tr class="destacado ${clase}">
+                    <td colspan="2" contenteditable="true" onfocus="clearDefault(this)">${texto}</td>
+                    <td style="text-align:right">
+                        <div class="time-wrapper">
+                            <input type="time" class="time-start">
+                        </div>
+                    </td>
                 </tr>
                 <tr><td class="col-label">Lugar</td><td colspan="2"><div class="lugar-td"><span contenteditable="true" style="flex:1" onfocus="clearDefault(this)">...</span>
                     <div class="pin-container"><span class="pin-edit-btn" onclick="resetMap(this, event)">✕</span><span class="pin-map" onclick="handlePinClick(this, event)">📍</span>
@@ -256,7 +261,11 @@
                     </div>
                     <div class="media-preview"></div><div class="audio-player"></div></td>
                 </tr>
-                <tr><td class="col-label">Horas</td><td colspan="2"><input type="time" class="time-start"> ${dual ? '<input type="time" class="time-end">' : ''}</td></tr>
+                ${dual ? `<tr><td class="col-label">Salida</td><td colspan="2" style="text-align:right">
+                    <div class="time-wrapper">
+                        <input type="time" class="time-end">
+                    </div>
+                </td></tr>` : ''}
             </table>
         </div>`;
         lista.insertAdjacentHTML('beforeend', html);
