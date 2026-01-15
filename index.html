@@ -33,7 +33,7 @@
         .dia-controls { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; padding: 6px; background: #f2f2f7; }
         .dia-controls .action-btn { min-height: 28px; font-size: 10px; border-radius: 6px; }
 
-        .bloque { margin: 8px; border: 1px solid #e5e5ea; border-radius: 10px; position: relative; padding-left: 35px; background: #fff; }
+        .bloque { margin: 8px; border: 1px solid #e5e5ea; border-radius: 10px; position: relative; padding-left: 35px; background: #fff; overflow: hidden;}
         
         .controls-left { 
             position: absolute; left: 0; top: 0; bottom: 0; width: 30px; 
@@ -81,13 +81,15 @@
         input[type="time"] { 
             border-radius: 6px; font-size: 16px !important; width: 100px; 
             padding: 4px; border: 1px solid #d1d1d6; font-family: inherit;
+            background: white; color: black;
         }
 
-        .destacado td { font-weight: bold; }
-        .tipo-visita { border-top: 3px solid #007aff; }
-        .tipo-comida { border-top: 3px solid #ff9500; }
-        .tipo-cena { border-top: 3px solid #5856d6; }
-        .tipo-salida { border-top: 3px solid #8e8e93; }
+        .destacado td { font-weight: bold; color: white; padding: 8px 4px; }
+        
+        .tipo-visita { background-color: #34c759 !important; }
+        .tipo-comida { background-color: #ff9500 !important; }
+        .tipo-cena { background-color: #af52de !important; }
+        .tipo-salida { background-color: #8e8e93 !important; }
 
         .time-wrapper {
             display: flex; align-items: center; justify-content: flex-end;
@@ -276,18 +278,40 @@
     function actualizarEfectos() { document.querySelectorAll('.map-url-input').forEach(input => checkPinStatus(input)); }
     function moveUp(btn) { const c = btn.closest('.bloque'); if (c.previousElementSibling) { c.parentNode.insertBefore(c, c.previousElementSibling); saveAll(); } }
     function moveDown(btn) { const c = btn.closest('.bloque'); if (c.nextElementSibling) { c.parentNode.insertBefore(c.nextElementSibling, c); saveAll(); } }
-    function exportarDatos() { saveAll(); const d = { titulo: document.getElementById('titulo-viaje').innerText, cuerpo: document.getElementById('itinerario').innerHTML }; const blob = new Blob([JSON.stringify(d)], {type: "application/json"}); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = "itinerario.json"; a.click(); }
+    function exportarDatos() { saveAll(); const d = { titulo: document.getElementById('titulo-viaje').innerText, cuerpo: document.getElementById('itinerario').innerHTML }; const blob = new Blob([JSON.stringify(d)], {type: "application/json"}); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `${document.getElementById('titulo-viaje').innerText.toLowerCase().replace(/\s+/g, '-')}.json`; a.click(); }
     function importarDatos(input) { if (!input.files[0]) return; const r = new FileReader(); r.onload = e => { const d = JSON.parse(e.target.result); document.getElementById('titulo-viaje').innerText = d.titulo; document.getElementById('itinerario').innerHTML = d.cuerpo; actualizarEfectos(); saveAll(); }; r.readAsText(input.files[0]); }
     function limpiarTodo() { if(confirm("¿Borrar todo?")) { localStorage.clear(); location.reload(); } }
+    
     async function sincronizarGitHub() {
-        let url = localStorage.getItem('github_url');
-        if (!url || url === "null") { url = prompt("URL 'Raw' de GitHub:"); if (url) localStorage.setItem('github_url', url.trim()); }
-        if (!url) return;
+        let baseUrl = localStorage.getItem('github_base_url');
+        if (!baseUrl || baseUrl === "null") { 
+            baseUrl = prompt("Introduce la URL base de tu GitHub (ej: https://raw.githubusercontent.com/usuario/repo/main/):"); 
+            if (baseUrl) {
+                if (!baseUrl.endsWith('/')) baseUrl += '/';
+                localStorage.setItem('github_base_url', baseUrl.trim()); 
+            }
+        }
+        if (!baseUrl) return;
+
+        // Limpiar el título para formar el nombre del archivo
+        const titulo = document.getElementById('titulo-viaje').innerText.toLowerCase().trim().replace(/\s+/g, '-');
+        const finalUrl = `${baseUrl}${titulo}.json`;
+
         try {
-            const response = await fetch(url + "?cb=" + Date.now());
+            const response = await fetch(finalUrl + "?cb=" + Date.now());
+            if (!response.ok) throw new Error();
             const d = await response.json();
-            if (confirm("¿Actualizar?")) { document.getElementById('titulo-viaje').innerText = d.titulo; document.getElementById('itinerario').innerHTML = d.cuerpo; actualizarEfectos(); saveAll(); alert("✅"); }
-        } catch (e) { alert("❌"); localStorage.removeItem('github_url'); }
+            if (confirm(`¿Actualizar itinerario desde "${titulo}.json"?`)) { 
+                document.getElementById('titulo-viaje').innerText = d.titulo; 
+                document.getElementById('itinerario').innerHTML = d.cuerpo; 
+                actualizarEfectos(); 
+                saveAll(); 
+                alert("✅ Sincronizado"); 
+            }
+        } catch (e) { 
+            alert(`❌ No se encontró: ${titulo}.json\nVerifica la URL base o el nombre.`); 
+            if(confirm("¿Quieres cambiar la URL base?")) localStorage.removeItem('github_base_url');
+        }
     }
 </script>
 </body>
