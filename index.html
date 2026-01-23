@@ -5,72 +5,36 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Itinerario Viaje Pro</title>
     <style>
-        body { 
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
-            background-color: #f2f2f7; margin: 0; padding: 10px; 
-            display: flex; flex-direction: column; align-items: center; 
-        }
-        .container { 
-            background: white; padding: 10px; border-radius: 15px; 
-            box-shadow: 0 4px 20px rgba(0,0,0,0.1); width: 100%; 
-            max-width: 400px; box-sizing: border-box; 
-        }
-        
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: #f2f2f7; margin: 0; padding: 10px; display: flex; flex-direction: column; align-items: center; }
+        .container { background: white; padding: 10px; border-radius: 15px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); width: 100%; max-width: 400px; box-sizing: border-box; }
         .main-nav { position: sticky; top: 0; background: white; z-index: 1000; padding: 10px 0; border-bottom: 1px solid #d1d1d6; display: flex; flex-direction: column; gap: 8px; }
         .nav-row-quad { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
-
-        .action-btn { padding: 2px; border: none; border-radius: 8px; font-weight: 600; font-size: 11px; color: white; display: flex; align-items: center; justify-content: center; min-height: 30px; cursor: pointer; text-decoration: none; }
-
-        .dia-container { margin-bottom: 15px; border: 1px solid #d1d1d6; border-radius: 12px; background: #fff; overflow: hidden; scroll-margin-top: 100px; }
+        .action-btn { padding: 2px; border: none; border-radius: 8px; font-weight: 600; font-size: 11px; color: white; display: flex; align-items: center; justify-content: center; min-height: 35px; cursor: pointer; }
+        .dia-container { margin-bottom: 15px; border: 1px solid #d1d1d6; border-radius: 12px; background: #fff; overflow: hidden; }
         .bloque-dia-header { background: #1c1c1e; color: white; padding: 12px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
-        .header-info-wrapper { flex: 1; min-width: 0; }
-        .bloque-dia-header h3 { margin: 0; font-size: 11px; text-transform: uppercase; opacity: 0.7; }
-        .nombre-dia-personalizado { font-size: 18px; font-weight: bold; color: white; min-height: 22px; margin-top: 2px; }
-        
-        .clima-wrapper { display: flex; align-items: center; gap: 5px; margin: 0 10px; }
-        .clima-icon { font-size: 26px; }
-        .temp-wrapper { display: flex; flex-direction: column; font-size: 10px; font-weight: bold; line-height: 1.1; }
-        .temp-max { color: #ff453a; } .temp-min { color: #0a84ff; }
-
-        .dia-management-block { display: flex; align-items: center; gap: 8px; border-left: 1px solid rgba(255,255,255,0.2); padding-left: 10px; }
-        .dia-order-controls { display: flex; flex-direction: column; gap: 2px; }
-        .btn-dia-order { background: rgba(255,255,255,0.1); border: none; color: white; border-radius: 4px; width: 24px; height: 18px; cursor: pointer; font-size: 9px; display: flex; align-items: center; justify-content: center; }
-
+        .nombre-dia-personalizado { font-size: 18px; font-weight: bold; color: white; }
+        .clima-wrapper { display: flex; align-items: center; gap: 5px; }
         .dia-contenido { display: none; padding-bottom: 10px; }
         .dia-contenido.abierto { display: block; }
         .dia-controls { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; padding: 8px; background: #f2f2f7; }
-        
-        .bloque { margin: 8px; border: 1px solid #e5e5ea; border-radius: 10px; position: relative; padding-left: 32px; background: #fff; transition: all 0.3s ease; }
-        .bloque.completado { opacity: 0.35; filter: grayscale(1); }
-
-        .controls-left { position: absolute; left: 0; top: 0; bottom: 0; width: 32px; display: flex; flex-direction: column; align-items: center; border-right: 1px solid #e5e5ea; background: #f9f9f9; padding: 0; }
+        .bloque { margin: 8px; border: 1px solid #e5e5ea; border-radius: 10px; position: relative; padding-left: 32px; background: #fff; }
+        .bloque.completado { opacity: 0.4; filter: grayscale(1); }
+        .controls-left { position: absolute; left: 0; top: 0; bottom: 0; width: 32px; display: flex; flex-direction: column; align-items: center; border-right: 1px solid #e5e5ea; background: #f9f9f9; }
         .btn-ctrl { width: 100%; flex: 1; border: none; background: transparent; font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
-        .btn-ctrl-del { color: #ff3b30; border-top: 1px solid #eee; font-size: 11px; }
-        
-        .check-wrapper { flex: 1.2; display: flex; align-items: center; justify-content: center; border-bottom: 1px solid #eee; width: 100%; }
-        .check-completar { width: 18px; height: 18px; cursor: pointer; accent-color: #34c759; margin: 0; }
-
         table { width: 100%; border-collapse: collapse; table-layout: fixed; }
         td { padding: 6px; border-bottom: 1px solid #f2f2f7; font-size: 14px; }
         .destacado td { font-weight: 800; color: white; }
-        .col-label { width: 50px; font-size: 9px; color: #8e8e93; text-transform: uppercase; }
-        
-        .notas-texto { font-size: 13px; color: #3a3a3c; min-height: 20px; outline: none; }
-
         .tipo-visita { background-color: #34c759 !important; }
         .tipo-comida { background-color: #ff9500 !important; }
         .tipo-cena { background-color: #af52de !important; }
         .tipo-salida { background-color: #8e8e93 !important; }
-
-        .pin-map { cursor: pointer; font-size: 18px; filter: grayscale(1); }
-        .pin-active { filter: grayscale(0) !important; }
-        .media-preview img { width: 100%; border-radius: 8px; margin-top: 5px; }
+        .check-completar { width: 18px; height: 18px; accent-color: #34c759; }
     </style>
 </head>
 <body onclick="closeAllPopovers(event)">
 
 <div class="container">
-    <h2 id="titulo-viaje" contenteditable="true" style="text-align:center; font-size: 20px; margin: 10px 0;" onblur="saveAll()">Mi Itinerario</h2>
+    <h2 id="titulo-viaje" contenteditable="true" style="text-align:center; margin: 10px 0;" onblur="saveAll()">Mi Itinerario</h2>
     
     <div class="main-nav">
         <div class="nav-row-quad">
@@ -88,7 +52,6 @@
 
 <script>
     const weatherIcons = { 0: "☀️", 1: "🌤️", 2: "⛅", 3: "☁️", 45: "🌫️", 51: "🌦️", 61: "🌧️", 71: "❄️", 95: "⛈️" };
-    // URL ESTABLE DE GITHUB
     const GITHUB_URL = "https://raw.githubusercontent.com/antoniodetm/mi-viaje/main/itinerario_viaje.json";
 
     window.onload = () => {
@@ -103,33 +66,44 @@
 
     async function sincronizarGitHub() {
         const btn = document.getElementById('sync-btn');
-        btn.innerText = "⏳...";
-        // El proxy AllOrigins resuelve problemas de CORS y cacheo
-        const proxyUrl = "https://api.allorigins.win/get?url=" + encodeURIComponent(GITHUB_URL + "?cb=" + Date.now());
+        const originalText = btn.innerText;
+        btn.innerText = "⌛...";
+        btn.disabled = true;
+
+        // Intentamos cargar con un proxy robusto y evitando caché
+        const proxyUrl = "https://api.allorigins.win/get?url=" + encodeURIComponent(GITHUB_URL + "?t=" + Date.now());
 
         try {
             const response = await fetch(proxyUrl);
+            if (!response.ok) throw new Error("Error de red");
+            
             const data = await response.json();
-            // AllOrigins devuelve el contenido como string dentro de .contents
+            if (!data.contents) throw new Error("Sin contenido");
+
             const d = JSON.parse(data.contents);
             
-            if (confirm("¿Sobrescribir datos locales con el archivo de GitHub?")) {
-                document.getElementById('titulo-viaje').innerText = d.titulo;
+            if (confirm("¿Sincronizar datos desde GitHub?")) {
+                document.getElementById('titulo-viaje').innerText = d.titulo || "Mi Itinerario";
                 document.getElementById('itinerario').innerHTML = d.cuerpo;
-                saveAll();
-                location.reload();
+                
+                // Guardado inmediato
+                localStorage.setItem('miItinerario', d.cuerpo);
+                localStorage.setItem('tituloViaje', d.titulo || "Mi Itinerario");
+                
+                alert("✅ ¡Sincronizado!");
+                location.reload(); 
             }
         } catch (e) {
             console.error(e);
-            alert("Error de Sync: Revisa que el fichero sea público y tenga formato JSON válido.");
+            alert("❌ Error: No se pudo leer el archivo. Asegúrate de que en GitHub el archivo se llame 'itinerario_viaje.json' y sea público.");
         } finally {
-            btn.innerText = "🔄 Sync";
+            btn.innerText = originalText;
+            btn.disabled = false;
         }
     }
 
     function saveAll() {
         document.querySelectorAll('input[type="time"]').forEach(i => i.setAttribute('value', i.value));
-        document.querySelectorAll('.map-url-input').forEach(i => i.setAttribute('value', i.value));
         document.querySelectorAll('.check-completar').forEach(c => c.checked ? c.setAttribute('checked', 'checked') : c.removeAttribute('checked'));
         localStorage.setItem('miItinerario', document.getElementById('itinerario').innerHTML);
         localStorage.setItem('tituloViaje', document.getElementById('titulo-viaje').innerText);
@@ -144,13 +118,7 @@
                     <div class="nombre-dia-personalizado" contenteditable="true" onblur="fetchClimaGlobal(this)">Destino...</div>
                 </div>
                 <div class="clima-wrapper"></div>
-                <div class="dia-management-block">
-                    <div class="dia-order-controls">
-                        <button class="btn-dia-order" onclick="moverDia(this, 'arriba')">▲</button>
-                        <button class="btn-dia-order" onclick="moverDia(this, 'abajo')">▼</button>
-                    </div>
-                    <span onclick="if(confirm('¿Borrar día?')){this.closest('.dia-container').remove();saveAll();}">✕</span>
-                </div>
+                <button class="btn-ctrl" style="color:white; width:30px" onclick="if(confirm('¿Borrar día?')){this.closest('.dia-container').remove();saveAll();}">✕</button>
             </div>
             <div class="dia-contenido">
                 <div class="dia-controls">
@@ -175,40 +143,23 @@
         
         const html = `<div class="bloque">
             <div class="controls-left">
-                <div class="check-wrapper"><input type="checkbox" class="check-completar" onclick="toggleCompletado(this)"></div>
+                <div class="check-wrapper" style="flex:1; display:flex; align-items:center;"><input type="checkbox" class="check-completar" onclick="toggleCompletado(this)"></div>
                 <button class="btn-ctrl" onclick="moveUp(this)">▲</button>
                 <button class="btn-ctrl" onclick="moveDown(this)">▼</button>
-                <button class="btn-ctrl btn-ctrl-del" onclick="if(confirm('¿Borrar?')){this.closest('.bloque').remove();saveAll();}">✕</button>
+                <button class="btn-ctrl" style="color:red" onclick="this.closest('.bloque').remove();saveAll();">✕</button>
             </div>
             <table oninput="saveAll()">
                 <tr class="destacado ${clase}"><td colspan="2" contenteditable="true">${texto}</td><td style="text-align:right"><input type="time"></td></tr>
-                <tr><td class="col-label">Lugar</td><td colspan="2" contenteditable="true">...</td></tr>
-                <tr><td class="col-label">Notas</td><td colspan="2" contenteditable="true"></td></tr>
+                <tr><td colspan="3" contenteditable="true" style="color:#8e8e93; font-size:12px">Lugar...</td></tr>
+                <tr><td colspan="3" contenteditable="true">Notas...</td></tr>
             </table>
         </div>`;
         lista.insertAdjacentHTML('beforeend', html);
         saveAll();
     }
 
-    async function fetchClimaGlobal(el) {
-        const nombre = el.innerText.trim();
-        const wrapperClima = el.closest('.dia-container').querySelector('.clima-wrapper');
-        if (!nombre || nombre === "Destino...") return;
-        try {
-            const geo = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(nombre)}&count=1&language=es&format=json`);
-            const geoData = await geo.json();
-            if (geoData.results) {
-                const { latitude, longitude } = geoData.results[0];
-                const weather = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&daily=weathercode,temperature_2m_max,temperature_2m_min&timezone=auto`);
-                const wData = await weather.json();
-                const icon = weatherIcons[wData.daily.weathercode[0]] || "🌡️";
-                wrapperClima.innerHTML = `<span class="clima-icon">${icon}</span><div class="temp-wrapper"><span class="temp-max">${Math.round(wData.daily.temperature_2m_max[0])}°</span><span class="temp-min">${Math.round(wData.daily.temperature_2m_min[0])}°</span></div>`;
-            }
-        } catch (e) { console.error(e); }
-    }
-
     function toggleDia(header) {
-        if (event.target.closest('.dia-management-block') || event.target.hasAttribute('contenteditable')) return;
+        if (event.target.hasAttribute('contenteditable') || event.target.tagName === 'BUTTON') return;
         header.nextElementSibling.classList.toggle('abierto');
     }
 
@@ -219,12 +170,32 @@
 
     function moveUp(btn) { const c = btn.closest('.bloque'); if (c.previousElementSibling) { c.parentNode.insertBefore(c, c.previousElementSibling); saveAll(); } }
     function moveDown(btn) { const c = btn.closest('.bloque'); if (c.nextElementSibling) { c.parentNode.insertBefore(c.nextElementSibling, c); saveAll(); } }
-    function moverDia(btn, dir) { const dia = btn.closest('.dia-container'); dir === 'arriba' ? (dia.previousElementSibling && dia.parentNode.insertBefore(dia, dia.previousElementSibling)) : (dia.nextElementSibling && dia.parentNode.insertBefore(dia.nextElementSibling, dia)); saveAll(); }
     
-    function exportarDatos() { saveAll(); const d = { titulo: document.getElementById('titulo-viaje').innerText, cuerpo: document.getElementById('itinerario').innerHTML }; const blob = new Blob([JSON.stringify(d)], {type: "application/json"}); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = "itinerario.json"; a.click(); }
-    function importarDatos(input) { const r = new FileReader(); r.onload = e => { const d = JSON.parse(e.target.result); document.getElementById('itinerario').innerHTML = d.cuerpo; document.getElementById('titulo-viaje').innerText = d.titulo; saveAll(); location.reload(); }; r.readAsText(input.files[0]); }
+    function exportarDatos() { 
+        saveAll(); 
+        const d = { titulo: document.getElementById('titulo-viaje').innerText, cuerpo: document.getElementById('itinerario').innerHTML }; 
+        const blob = new Blob([JSON.stringify(d)], {type: "application/json"}); 
+        const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = "itinerario_viaje.json"; a.click(); 
+    }
+
+    function importarDatos(input) { 
+        const r = new FileReader(); 
+        r.onload = e => { 
+            const d = JSON.parse(e.target.result); 
+            document.getElementById('itinerario').innerHTML = d.cuerpo; 
+            document.getElementById('titulo-viaje').innerText = d.titulo; 
+            saveAll(); location.reload(); 
+        }; 
+        r.readAsText(input.files[0]); 
+    }
+
+    function actualizarEfectos() {
+        document.querySelectorAll('.check-completar').forEach(c => {
+            if(c.hasAttribute('checked')) { c.checked = true; c.closest('.bloque').classList.add('completado'); }
+        });
+    }
+
     function limpiarTodo() { if(confirm("¿Borrar todo?")) { localStorage.clear(); location.reload(); } }
-    function actualizarEfectos() { document.querySelectorAll('.check-completar').forEach(c => { if(c.hasAttribute('checked')) { c.checked = true; c.closest('.bloque').classList.add('completado'); } }); }
     function closeAllPopovers(e) {}
 </script>
 </body>
