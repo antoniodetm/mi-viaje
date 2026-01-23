@@ -64,6 +64,7 @@
 
         .pin-map { cursor: pointer; font-size: 18px; filter: grayscale(1); }
         .pin-active { filter: grayscale(0) !important; }
+        .media-preview img { width: 100%; border-radius: 8px; margin-top: 5px; }
     </style>
 </head>
 <body onclick="closeAllPopovers(event)">
@@ -82,10 +83,12 @@
     </div>
 
     <div id="itinerario"></div>
+    <button class="action-btn" style="background:#ff3b30; width: 100%; margin-top: 15px;" onclick="limpiarTodo()">🗑️ Borrar Todo</button>
 </div>
 
 <script>
     const weatherIcons = { 0: "☀️", 1: "🌤️", 2: "⛅", 3: "☁️", 45: "🌫️", 51: "🌦️", 61: "🌧️", 71: "❄️", 95: "⛈️" };
+    // URL ESTABLE DE GITHUB
     const GITHUB_URL = "https://raw.githubusercontent.com/antoniodetm/mi-viaje/main/itinerario_viaje.json";
 
     window.onload = () => {
@@ -101,22 +104,24 @@
     async function sincronizarGitHub() {
         const btn = document.getElementById('sync-btn');
         btn.innerText = "⏳...";
-        // Usamos un proxy para evitar errores de CORS/Seguridad de GitHub
+        // El proxy AllOrigins resuelve problemas de CORS y cacheo
         const proxyUrl = "https://api.allorigins.win/get?url=" + encodeURIComponent(GITHUB_URL + "?cb=" + Date.now());
 
         try {
             const response = await fetch(proxyUrl);
             const data = await response.json();
+            // AllOrigins devuelve el contenido como string dentro de .contents
             const d = JSON.parse(data.contents);
             
-            if (confirm("¿Sincronizar con GitHub?")) {
+            if (confirm("¿Sobrescribir datos locales con el archivo de GitHub?")) {
                 document.getElementById('titulo-viaje').innerText = d.titulo;
                 document.getElementById('itinerario').innerHTML = d.cuerpo;
                 saveAll();
                 location.reload();
             }
         } catch (e) {
-            alert("Error de Sync. Verifica que el archivo en GitHub sea público.");
+            console.error(e);
+            alert("Error de Sync: Revisa que el fichero sea público y tenga formato JSON válido.");
         } finally {
             btn.innerText = "🔄 Sync";
         }
@@ -125,6 +130,7 @@
     function saveAll() {
         document.querySelectorAll('input[type="time"]').forEach(i => i.setAttribute('value', i.value));
         document.querySelectorAll('.map-url-input').forEach(i => i.setAttribute('value', i.value));
+        document.querySelectorAll('.check-completar').forEach(c => c.checked ? c.setAttribute('checked', 'checked') : c.removeAttribute('checked'));
         localStorage.setItem('miItinerario', document.getElementById('itinerario').innerHTML);
         localStorage.setItem('tituloViaje', document.getElementById('titulo-viaje').innerText);
     }
@@ -143,6 +149,7 @@
                         <button class="btn-dia-order" onclick="moverDia(this, 'arriba')">▲</button>
                         <button class="btn-dia-order" onclick="moverDia(this, 'abajo')">▼</button>
                     </div>
+                    <span onclick="if(confirm('¿Borrar día?')){this.closest('.dia-container').remove();saveAll();}">✕</span>
                 </div>
             </div>
             <div class="dia-contenido">
@@ -171,7 +178,7 @@
                 <div class="check-wrapper"><input type="checkbox" class="check-completar" onclick="toggleCompletado(this)"></div>
                 <button class="btn-ctrl" onclick="moveUp(this)">▲</button>
                 <button class="btn-ctrl" onclick="moveDown(this)">▼</button>
-                <button class="btn-ctrl btn-ctrl-del" onclick="this.closest('.bloque').remove();saveAll();">✕</button>
+                <button class="btn-ctrl btn-ctrl-del" onclick="if(confirm('¿Borrar?')){this.closest('.bloque').remove();saveAll();}">✕</button>
             </div>
             <table oninput="saveAll()">
                 <tr class="destacado ${clase}"><td colspan="2" contenteditable="true">${texto}</td><td style="text-align:right"><input type="time"></td></tr>
@@ -216,7 +223,8 @@
     
     function exportarDatos() { saveAll(); const d = { titulo: document.getElementById('titulo-viaje').innerText, cuerpo: document.getElementById('itinerario').innerHTML }; const blob = new Blob([JSON.stringify(d)], {type: "application/json"}); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = "itinerario.json"; a.click(); }
     function importarDatos(input) { const r = new FileReader(); r.onload = e => { const d = JSON.parse(e.target.result); document.getElementById('itinerario').innerHTML = d.cuerpo; document.getElementById('titulo-viaje').innerText = d.titulo; saveAll(); location.reload(); }; r.readAsText(input.files[0]); }
-    function actualizarEfectos() { document.querySelectorAll('.check-completar').forEach(c => { if(c.checked) c.closest('.bloque').classList.add('completado'); }); }
+    function limpiarTodo() { if(confirm("¿Borrar todo?")) { localStorage.clear(); location.reload(); } }
+    function actualizarEfectos() { document.querySelectorAll('.check-completar').forEach(c => { if(c.hasAttribute('checked')) { c.checked = true; c.closest('.bloque').classList.add('completado'); } }); }
     function closeAllPopovers(e) {}
 </script>
 </body>
