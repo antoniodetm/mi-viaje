@@ -17,7 +17,7 @@
         }
         
         .main-nav { position: sticky; top: 0; background: white; z-index: 1000; padding: 10px 0; border-bottom: 1px solid #d1d1d6; display: flex; flex-direction: column; gap: 8px; }
-        .nav-row-actions { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+        .nav-row-actions { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
 
         .action-btn { padding: 2px; border: none; border-radius: 8px; font-weight: 600; font-size: 11px; color: white; display: flex; align-items: center; justify-content: center; min-height: 35px; cursor: pointer; text-decoration: none; }
 
@@ -70,6 +70,7 @@
         <div class="nav-row-actions">
             <button class="action-btn" style="background:#007aff" onclick="exportarDatos()">⬇️ Guardar</button>
             <button class="action-btn" style="background:#34c759" onclick="document.getElementById('import-file').click()">📂 Abrir</button>
+            <button class="action-btn" style="background:#5856d6" onclick="syncGitHub()">🔄 Sync</button>
             <input type="file" id="import-file" style="display:none" accept=".json" onchange="importarDatos(this)">
             <button class="action-btn" style="background:#1c1c1e" onclick="addDia()">+ Día</button>
         </div>
@@ -97,6 +98,23 @@
         document.querySelectorAll('.check-completar').forEach(c => c.checked ? c.setAttribute('checked', 'checked') : c.removeAttribute('checked'));
         localStorage.setItem('miItinerario', document.getElementById('itinerario').innerHTML);
         localStorage.setItem('tituloViaje', document.getElementById('titulo-viaje').innerText);
+    }
+
+    async function syncGitHub() {
+        const url = 'https://raw.githubusercontent.com/antoniodetm/mi-viaje/refs/heads/main/itinerario_viaje.json';
+        try {
+            const response = await fetch(url);
+            if (!response.ok) throw new Error('No se pudo conectar con GitHub');
+            const d = await response.json();
+            document.getElementById('itinerario').innerHTML = d.cuerpo;
+            document.getElementById('titulo-viaje').innerText = d.titulo;
+            saveAll();
+            actualizarEfectos();
+            alert("✅ Sincronizado correctamente");
+        } catch (error) {
+            console.error('Error:', error);
+            alert("❌ Error de sincronización");
+        }
     }
 
     function addDia() {
