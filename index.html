@@ -101,19 +101,27 @@
     }
 
     async function syncGitHub() {
-        const url = 'https://raw.githubusercontent.com/antoniodetm/mi-viaje/refs/heads/main/itinerario_viaje.json';
+        // Añadimos un parámetro de tiempo para evitar la caché de GitHub
+        const url = 'https://raw.githubusercontent.com/antoniodetm/mi-viaje/refs/heads/main/itinerario_viaje.json?t=' + Date.now();
+        
         try {
             const response = await fetch(url);
-            if (!response.ok) throw new Error('No se pudo conectar con GitHub');
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+            
             const d = await response.json();
-            document.getElementById('itinerario').innerHTML = d.cuerpo;
-            document.getElementById('titulo-viaje').innerText = d.titulo;
-            saveAll();
-            actualizarEfectos();
-            alert("✅ Sincronizado correctamente");
+            
+            if (d.cuerpo && d.titulo) {
+                document.getElementById('itinerario').innerHTML = d.cuerpo;
+                document.getElementById('titulo-viaje').innerText = d.titulo;
+                saveAll();
+                actualizarEfectos();
+                alert("✅ Sincronizado correctamente desde GitHub");
+            } else {
+                throw new Error("El archivo JSON no tiene el formato esperado (titulo y cuerpo)");
+            }
         } catch (error) {
-            console.error('Error:', error);
-            alert("❌ Error de sincronización");
+            console.error('Error de sincronización:', error);
+            alert("❌ Error: " + error.message);
         }
     }
 
