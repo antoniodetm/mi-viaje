@@ -27,6 +27,7 @@
         .bloque-dia-header h3 { margin: 0; font-size: 11px; text-transform: uppercase; opacity: 0.7; }
         .nombre-dia-personalizado { font-size: 18px; font-weight: bold; color: white; min-height: 22px; margin-top: 2px; }
         
+        /* CLIMA MÁS GRANDE */
         .clima-wrapper { display: flex; align-items: center; gap: 5px; margin: 0 10px; }
         .clima-icon { font-size: 26px; }
         .temp-wrapper { display: flex; flex-direction: column; font-size: 10px; font-weight: bold; line-height: 1.1; }
@@ -43,6 +44,7 @@
         .bloque { margin: 8px; border: 1px solid #e5e5ea; border-radius: 10px; position: relative; padding-left: 32px; background: #fff; transition: all 0.3s ease; }
         .bloque.completado { opacity: 0.35; filter: grayscale(1); }
 
+        /* FLECHAS ARRIBA Y ABAJO EN BLOQUES */
         .controls-left { position: absolute; left: 0; top: 0; bottom: 0; width: 32px; display: flex; flex-direction: column; align-items: center; border-right: 1px solid #e5e5ea; background: #f9f9f9; padding: 0; }
         .btn-ctrl { width: 100%; flex: 1; border: none; background: transparent; font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
         .btn-ctrl-del { color: #ff3b30; border-top: 1px solid #eee; font-size: 11px; }
@@ -77,7 +79,7 @@
             <button class="action-btn" style="background:#007aff" onclick="exportarDatos()">⬇️ Guardar</button>
             <button class="action-btn" style="background:#34c759" onclick="document.getElementById('import-file').click()">📂 Abrir</button>
             <input type="file" id="import-file" style="display:none" accept=".json" onchange="importarDatos(this)">
-            <button class="action-btn" style="background:#5856d6" onclick="sincronizarGitHub()">🔄 Sync</button>
+            <button id="sync-btn" class="action-btn" style="background:#5856d6" onclick="sincronizarGitHub()">🔄 Sync</button>
             <button class="action-btn" style="background:#1c1c1e" onclick="addDia()">+ Día</button>
         </div>
     </div>
@@ -88,7 +90,6 @@
 
 <script>
     const weatherIcons = { 0: "☀️", 1: "🌤️", 2: "⛅", 3: "☁️", 45: "🌫️", 51: "🌦️", 61: "🌧️", 71: "❄️", 95: "⛈️" };
-    // URL FIJA DE TU REPOSITORIO
     const GITHUB_URL_FIJA = "https://raw.githubusercontent.com/antoniodetm/mi-viaje/main/itinerario_viaje.json";
 
     window.onload = () => {
@@ -102,30 +103,29 @@
     };
 
     async function sincronizarGitHub() {
-        // Usamos un proxy de CORS para evitar bloqueos del navegador
+        const btn = document.getElementById('sync-btn');
+        btn.innerText = "⏳...";
         const proxyUrl = "https://api.allorigins.win/get?url=" + encodeURIComponent(GITHUB_URL_FIJA + "?cb=" + Date.now());
 
         try {
             const response = await fetch(proxyUrl);
-            if (!response.ok) throw new Error("Error de red");
+            if (!response.ok) throw new Error();
             const data = await response.json();
-            
-            // allorigins devuelve los datos dentro de una propiedad 'contents' como string
             const d = JSON.parse(data.contents);
             
-            if (confirm("¿Sincronizar datos desde GitHub? Se perderán los cambios locales no guardados en el archivo.")) {
+            if (confirm("¿Sincronizar datos desde GitHub?")) {
                 document.getElementById('titulo-viaje').innerText = d.titulo;
                 document.getElementById('itinerario').innerHTML = d.cuerpo;
                 saveAll();
                 location.reload();
             }
         } catch (e) {
-            console.error(e);
-            alert("Error de Sync: No se pudo obtener el archivo. Asegúrate de que el nombre del archivo en GitHub sea exactamente 'itinerario_viaje.json' y esté en la rama 'main'.");
+            alert("Error: Asegúrate de que el archivo 'itinerario_viaje.json' sea público en GitHub.");
+        } finally {
+            btn.innerText = "🔄 Sync";
         }
     }
 
-    // --- Resto de funciones originales ---
     function toggleCompletado(check) {
         const bloque = check.closest('.bloque');
         check.checked ? (bloque.classList.add('completado'), check.setAttribute('checked', 'checked')) : (bloque.classList.remove('completado'), check.removeAttribute('checked'));
