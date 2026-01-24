@@ -11,14 +11,17 @@
         .nav-row-quad { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
         .action-btn { padding: 2px; border: none; border-radius: 8px; font-weight: 600; font-size: 11px; color: white; display: flex; align-items: center; justify-content: center; min-height: 35px; cursor: pointer; }
         
+        /* HEADER DÍA */
         .dia-container { margin-bottom: 15px; border: 1px solid #d1d1d6; border-radius: 12px; background: #fff; overflow: hidden; display: flex; flex-direction: column; }
         .bloque-dia-header { background: #1c1c1e; color: white; display: grid; grid-template-columns: 1fr auto 40px; align-items: center; cursor: pointer; min-height: 65px; }
         .header-info-wrapper { padding: 6px 12px; display: flex; flex-direction: column; }
         .header-info-wrapper h3 { margin: 0; font-size: 11px; font-weight: 400; opacity: 0.7; text-transform: uppercase; }
         .nombre-dia-personalizado { font-size: 20px; font-weight: 800; line-height: 1.1; min-width: 100px; }
+        
         .clima-wrapper { display: flex; align-items: center; gap: 8px; padding-right: 12px; }
         .clima-icon { font-size: 26px; }
         .temp-row { display: flex; gap: 5px; font-size: 16px; font-weight: 900; }
+
         .dia-management-block { display: flex; flex-direction: column; background: #2c2c2e; border-left: 1px solid #3a3a3c; align-self: stretch; justify-content: center; }
         .btn-dia-order { background: transparent; border: none; color: white; font-size: 12px; padding: 4px; cursor: pointer; }
         .btn-dia-delete { color: #ff453a; font-size: 16px; padding: 4px; text-align: center; cursor: pointer; }
@@ -27,9 +30,10 @@
         .dia-contenido.abierto { display: block; }
         .dia-controls { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; padding: 8px; background: #f2f2f7; }
         
-        .bloque { margin: 8px; border: 1px solid #e5e5ea; border-radius: 10px; position: relative; padding-left: 32px; background: #fff; }
+        /* EVENTOS */
+        .bloque { margin: 8px; border: 1px solid #e5e5ea; border-radius: 10px; position: relative; padding-left: 32px; background: #fff; overflow: hidden; }
         .bloque.completado { opacity: 0.4; filter: grayscale(1); }
-        .controls-left { position: absolute; left: 0; top: 0; bottom: 0; width: 32px; display: flex; flex-direction: column; align-items: center; border-right: 1px solid #e5e5ea; background: #f9f9f9; }
+        .controls-left { position: absolute; left: 0; top: 0; bottom: 0; width: 32px; display: flex; flex-direction: column; align-items: center; border-right: 1px solid #e5e5ea; background: #f9f9f9; z-index: 10; }
         .btn-ctrl { width: 100%; flex: 1; border: none; background: transparent; font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
         
         table { width: 100%; border-collapse: collapse; }
@@ -37,10 +41,21 @@
         .destacado td { font-weight: 800; color: white; }
         .col-label { width: 1px; white-space: nowrap; font-size: 11px; font-weight: 600; color: #8e8e93; text-transform: uppercase; padding-right: 10px; }
         .col-data { width: 100%; }
-        .pin-map { cursor: pointer; font-size: 18px; filter: grayscale(1); }
-        .pin-active { filter: grayscale(0) !important; }
+
+        /* COLORES */
+        .tipo-visita { background-color: #34c759 !important; }
+        .tipo-comida { background-color: #ff9500 !important; }
+        .tipo-cena { background-color: #af52de !important; }
+        .tipo-salida { background-color: #8e8e93 !important; }
+
+        /* MAPA Y MEDIA */
+        .btn-mapa { cursor: pointer; font-size: 18px; opacity: 0.3; transition: opacity 0.3s; }
+        .btn-mapa.con-url { opacity: 1; filter: drop-shadow(0 0 2px rgba(0,0,0,0.2)); }
+        
         .media-area { width: 100%; display: block; margin-top: 5px; }
         .media-item img { width: 100%; border-radius: 8px; margin-bottom: 5px; }
+        .media-item audio { width: 100%; height: 35px; margin-bottom: 5px; }
+        .media-btns { display: flex; gap: 8px; margin-top: 8px; }
     </style>
 </head>
 <body>
@@ -64,7 +79,6 @@
 
 <script>
     const weatherIcons = { 0: "☀️", 1: "🌤️", 2: "⛅", 3: "☁️", 45: "🌫️", 51: "🌦️", 61: "🌧️", 71: "❄️", 95: "⛈️" };
-    // URL exacta proporcionada por el usuario
     const GITHUB_URL = "https://raw.githubusercontent.com/antoniodetm/mi-viaje/main/itinerario_viaje.json";
 
     window.onload = () => {
@@ -78,56 +92,13 @@
     };
 
     function saveAll() {
-        // Aseguramos que los valores visuales se escriban en el HTML antes de guardar
         document.querySelectorAll('input[type="time"]').forEach(i => i.setAttribute('value', i.value));
         document.querySelectorAll('input[type="checkbox"]').forEach(i => i.checked ? i.setAttribute('checked', 'checked') : i.removeAttribute('checked'));
-        
+        document.querySelectorAll('.btn-mapa').forEach(pin => {
+            if(pin.dataset.url) pin.setAttribute('data-url', pin.dataset.url);
+        });
         localStorage.setItem('miItinerario', document.getElementById('itinerario').innerHTML);
         localStorage.setItem('tituloViaje', document.getElementById('titulo-viaje').innerText);
-    }
-
-    // CARGA INTELIGENTE: Detecta si el JSON usa "itinerario" (viejo) o "cuerpo" (nuevo)
-    function cargarJSON(d) {
-        if (!d) return;
-        const contenido = d.cuerpo || d.itinerario || "";
-        const titulo = d.titulo || "Mi Itinerario";
-        
-        document.getElementById('itinerario').innerHTML = contenido;
-        document.getElementById('titulo-viaje').innerText = titulo;
-        
-        saveAll();
-        actualizarEfectos();
-        alert("¡Datos cargados con éxito!");
-    }
-
-    function importarDatos(input) {
-        if (!input.files[0]) return;
-        const reader = new FileReader();
-        reader.onload = e => {
-            try {
-                const d = JSON.parse(e.target.result);
-                cargarJSON(d);
-            } catch (err) { alert("Error: El archivo no es un JSON válido."); }
-        };
-        reader.readAsText(input.files[0]);
-        input.value = "";
-    }
-
-    async function sincronizarGitHub() {
-        const btn = document.getElementById('sync-btn');
-        btn.innerText = "⌛...";
-        try {
-            // Usamos un proxy para evitar bloqueos de CORS y añadimos timestamp para evitar caché
-            const resp = await fetch(`https://api.codetabs.com/v1/proxy?quest=${GITHUB_URL}&t=${Date.now()}`);
-            const d = await resp.json();
-            if (confirm("¿Sincronizar datos desde GitHub?")) {
-                cargarJSON(d);
-            }
-        } catch (e) { 
-            alert("No se pudo conectar con GitHub. Verifica tu conexión."); 
-        } finally { 
-            btn.innerText = "🔄 Sync"; 
-        }
     }
 
     function exportarDatos() {
@@ -137,13 +108,42 @@
             cuerpo: document.getElementById('itinerario').innerHTML 
         };
         const blob = new Blob([JSON.stringify(d)], {type: "application/json"});
+        const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
+        a.href = url;
         a.download = "itinerario_viaje.json";
+        document.body.appendChild(a);
         a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
     }
 
-    // --- FUNCIONES DE INTERFAZ ---
+    function cargarJSON(d) {
+        if (!d) return;
+        document.getElementById('itinerario').innerHTML = d.cuerpo || d.itinerario || "";
+        document.getElementById('titulo-viaje').innerText = d.titulo || "Mi Itinerario";
+        saveAll();
+        actualizarEfectos();
+        alert("¡Datos cargados!");
+    }
+
+    function importarDatos(input) {
+        if (!input.files[0]) return;
+        const reader = new FileReader();
+        reader.onload = e => { try { cargarJSON(JSON.parse(e.target.result)); } catch (err) { alert("Error."); } };
+        reader.readAsText(input.files[0]);
+        input.value = "";
+    }
+
+    async function sincronizarGitHub() {
+        const btn = document.getElementById('sync-btn'); btn.innerText = "⌛...";
+        try {
+            const resp = await fetch(`https://api.codetabs.com/v1/proxy?quest=${GITHUB_URL}&t=${Date.now()}`);
+            const d = await resp.json();
+            if (confirm("¿Sincronizar?")) cargarJSON(d);
+        } catch (e) { alert("Error Sync."); } finally { btn.innerText = "🔄 Sync"; }
+    }
+
     function addDia() {
         let fecha = new Date().toISOString().split('T')[0];
         const id = "dia-" + Date.now();
@@ -165,7 +165,7 @@
                     <button class="action-btn tipo-visita" onclick="addEvento('${id}', 'visita')">Visita</button>
                     <button class="action-btn tipo-comida" onclick="addEvento('${id}', 'comida')">Comida</button>
                     <button class="action-btn tipo-cena" onclick="addEvento('${id}', 'cena')">Cena</button>
-                    <button class="action-btn tipo-salida" onclick="addEvento('${id}', 'solo-salida')">Salida</button>
+                    <button class="action-btn tipo-salida" onclick="addEvento('${id}', 'salida')">Salida</button>
                 </div>
                 <div class="eventos-lista"></div>
             </div>
@@ -176,7 +176,8 @@
 
     function addEvento(diaId, tipo) {
         const lista = document.querySelector(`#${diaId} .eventos-lista`);
-        const conf = { visita: ['tipo-visita','VISITA'], comida: ['tipo-comida','COMIDA'], cena: ['tipo-cena','CENA'], 'solo-salida': ['tipo-salida','SALIDA'] };
+        const conf = { visita:['tipo-visita','VISITA'], comida:['tipo-comida','COMIDA'], cena:['tipo-cena','CENA'], salida:['tipo-salida','SALIDA'] };
+        const [clase, titulo] = conf[tipo];
         const html = `<div class="bloque">
             <div class="controls-left">
                 <input type="checkbox" class="check-completar" onclick="toggleCompletado(this)">
@@ -185,13 +186,45 @@
                 <button class="btn-ctrl" style="color:red" onclick="this.closest('.bloque').remove();saveAll();">✕</button>
             </div>
             <table oninput="saveAll()">
-                <tr class="destacado ${conf[tipo][0]}"><td colspan="2" contenteditable="true">${conf[tipo][1]}</td><td style="text-align:right"><input type="time" onchange="saveAll()"></td></tr>
-                <tr><td class="col-label">Lugar</td><td contenteditable="true">...</td><td style="text-align:right">📍</td></tr>
-                <tr><td class="col-label">Notas</td><td colspan="2" contenteditable="true"></td></tr>
+                <tr class="destacado ${clase}"><td colspan="2" contenteditable="true">${titulo}</td><td style="text-align:right"><input type="time" onchange="saveAll()"></td></tr>
+                <tr><td class="col-label">Lugar</td><td contenteditable="true" class="col-data">...</td><td style="text-align:right" class="btn-mapa" data-url="" onclick="gestionarMapa(this)">📍</td></tr>
+                <tr><td class="col-label">Notas</td><td colspan="2" contenteditable="true" class="col-data"></td></tr>
+                <tr><td class="col-label">Media</td><td colspan="2" class="col-data">
+                    <div class="media-area"></div>
+                    <div class="media-btns">
+                        <button class="action-btn" style="background:#8e8e93; width:40px;" onclick="this.nextElementSibling.click()">📸</button>
+                        <input type="file" hidden accept="image/*" onchange="processFile(this, 'img')">
+                        <button class="action-btn" style="background:#5856d6; width:40px;" onclick="this.nextElementSibling.click()">🎙️</button>
+                        <input type="file" hidden accept="audio/*" onchange="processFile(this, 'aud')">
+                    </div>
+                </td></tr>
             </table>
         </div>`;
         lista.insertAdjacentHTML('beforeend', html);
         saveAll();
+    }
+
+    function gestionarMapa(el) {
+        let urlExistente = el.dataset.url || el.getAttribute('data-url');
+        if (!urlExistente || urlExistente === "") {
+            let nuevaUrl = prompt("Pega aquí la URL:");
+            if (nuevaUrl) { el.dataset.url = nuevaUrl; el.setAttribute('data-url', nuevaUrl); el.classList.add('con-url'); saveAll(); }
+        } else {
+            if (confirm("¿Abrir enlace?")) { window.open(urlExistente, "_blank"); }
+            else { let n = prompt("Editar URL:", urlExistente); if(n!==null){ el.dataset.url=n; el.setAttribute('data-url',n); n===""?el.classList.remove('con-url'):el.classList.add('con-url'); saveAll(); } }
+        }
+    }
+
+    function processFile(input, tipo) {
+        if(!input.files[0]) return;
+        const reader = new FileReader();
+        reader.onload = e => {
+            const container = input.closest('td').querySelector('.media-area');
+            if(tipo === 'img') container.innerHTML += `<div class="media-item"><img src="${e.target.result}"></div>`;
+            else container.innerHTML += `<div class="media-item"><audio controls src="${e.target.result}"></audio></div>`;
+            saveAll();
+        };
+        reader.readAsDataURL(input.files[0]);
     }
 
     async function fetchClimaGlobal(el) {
@@ -205,8 +238,7 @@
                 const { latitude, longitude } = geoData.results[0];
                 const weather = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&daily=weathercode,temperature_2m_max,temperature_2m_min&timezone=auto`);
                 const wData = await weather.json();
-                const icon = weatherIcons[wData.daily.weathercode[0]] || "🌡️";
-                wrapperClima.innerHTML = `<span class="clima-icon">${icon}</span><div class="temp-row"><span style="color:#ff453a">${Math.round(wData.daily.temperature_2m_max[0])}°</span><span style="color:#0a84ff">${Math.round(wData.daily.temperature_2m_min[0])}°</span></div>`;
+                wrapperClima.innerHTML = `<span class="clima-icon">${weatherIcons[wData.daily.weathercode[0]] || "🌡️"}</span><div class="temp-row"><span style="color:#ff453a">${Math.round(wData.daily.temperature_2m_max[0])}°</span><span style="color:#0a84ff">${Math.round(wData.daily.temperature_2m_min[0])}°</span></div>`;
                 saveAll();
             }
         } catch (e) {}
@@ -217,11 +249,15 @@
     function moverDia(btn, dir) { const dia = btn.closest('.dia-container'); dir === 'arriba' ? dia.previousElementSibling?.before(dia) : dia.nextElementSibling?.after(dia); saveAll(); }
     function moveUp(btn) { const b = btn.closest('.bloque'); b.previousElementSibling?.before(b); saveAll(); }
     function moveDown(btn) { const b = btn.closest('.bloque'); b.nextElementSibling?.after(b); saveAll(); }
-    function limpiarTodo() { if(confirm("¿Borrar todo?")) { localStorage.clear(); location.reload(); } }
-
+    function limpiarTodo() { if(confirm("¿Borrar?")) { localStorage.clear(); location.reload(); } }
+    
     function actualizarEfectos() { 
         document.querySelectorAll('.check-completar').forEach(c => { if(c.hasAttribute('checked')) { c.checked = true; c.closest('.bloque').classList.add('completado'); } });
         document.querySelectorAll('input[type="time"]').forEach(i => { if(i.hasAttribute('value')) i.value = i.getAttribute('value'); });
+        document.querySelectorAll('.btn-mapa').forEach(pin => {
+            const url = pin.getAttribute('data-url');
+            if(url && url !== "") { pin.dataset.url = url; pin.classList.add('con-url'); }
+        });
     }
 </script>
 </body>
