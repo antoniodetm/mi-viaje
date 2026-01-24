@@ -92,16 +92,21 @@
     async function sincronizarGitHub() {
         const btn = document.getElementById('sync-btn');
         btn.innerText = "⌛...";
-        const finalUrl = `https://api.codetabs.com/v1/proxy?quest=${GITHUB_URL}&t=${Date.now()}`;
+        // MEJORA: Se añade un parámetro único de tiempo (?nocache=...) y cabeceras de control de caché
+        const finalUrl = `https://api.codetabs.com/v1/proxy?quest=${GITHUB_URL}&nocache=${Date.now()}`;
         try {
-            const response = await fetch(finalUrl);
+            const response = await fetch(finalUrl, {
+                method: 'GET',
+                cache: 'no-store', // Fuerza al navegador a no usar la caché
+                headers: { 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' }
+            });
             const d = await response.json();
             if (confirm("¿Actualizar desde GitHub?")) {
                 document.getElementById('titulo-viaje').innerText = d.titulo;
                 document.getElementById('itinerario').innerHTML = d.cuerpo;
                 saveAll(); location.reload();
             }
-        } catch (e) { alert("Error de Sync."); } finally { btn.innerText = "🔄 Sync"; }
+        } catch (e) { alert("Error de Sync. Verifica tu conexión o el archivo en GitHub."); } finally { btn.innerText = "🔄 Sync"; }
     }
 
     function saveAll() {
