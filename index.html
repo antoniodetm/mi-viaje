@@ -17,7 +17,7 @@
         }
         
         .main-nav { position: sticky; top: 0; background: white; z-index: 1000; padding: 10px 0; border-bottom: 1px solid #d1d1d6; display: flex; flex-direction: column; gap: 8px; }
-        .nav-row-actions { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+        .nav-row-quad { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
 
         .action-btn { padding: 2px; border: none; border-radius: 8px; font-weight: 600; font-size: 11px; color: white; display: flex; align-items: center; justify-content: center; min-height: 35px; cursor: pointer; text-decoration: none; }
 
@@ -45,7 +45,6 @@
 
         .controls-left { position: absolute; left: 0; top: 0; bottom: 0; width: 32px; display: flex; flex-direction: column; align-items: center; border-right: 1px solid #e5e5ea; background: #f9f9f9; padding: 0; }
         .btn-ctrl { width: 100%; flex: 1; border: none; background: transparent; font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
-        .btn-ctrl-del { color: #ff3b30; border-top: 1px solid #eee; font-size: 11px; }
         
         .check-wrapper { flex: 1.2; display: flex; align-items: center; justify-content: center; border-bottom: 1px solid #eee; width: 100%; }
         .check-completar { width: 18px; height: 18px; cursor: pointer; accent-color: #34c759; margin: 0; }
@@ -59,6 +58,9 @@
         .tipo-comida { background-color: #ff9500 !important; }
         .tipo-cena { background-color: #af52de !important; }
         .tipo-salida { background-color: #8e8e93 !important; }
+        
+        .pin-map { cursor: pointer; font-size: 18px; filter: grayscale(1); }
+        .pin-active { filter: grayscale(0) !important; }
     </style>
 </head>
 <body onclick="closeAllPopovers(event)">
@@ -67,11 +69,11 @@
     <h2 id="titulo-viaje" contenteditable="true" style="text-align:center; font-size: 20px; margin: 10px 0;" onblur="saveAll()">Mi Itinerario</h2>
     
     <div class="main-nav">
-        <div class="nav-row-actions">
+        <div class="nav-row-quad">
             <button class="action-btn" style="background:#007aff" onclick="exportarDatos()">⬇️ Guardar</button>
             <button class="action-btn" style="background:#34c759" onclick="document.getElementById('import-file').click()">📂 Abrir</button>
-            <button class="action-btn" style="background:#5856d6" onclick="syncGitHub()">🔄 Sync</button>
             <input type="file" id="import-file" style="display:none" accept=".json" onchange="importarDatos(this)">
+            <button id="sync-btn" class="action-btn" style="background:#5856d6" onclick="sincronizarGitHub()">🔄 Sync</button>
             <button class="action-btn" style="background:#1c1c1e" onclick="addDia()">+ Día</button>
         </div>
     </div>
@@ -82,6 +84,8 @@
 
 <script>
     const weatherIcons = { 0: "☀️", 1: "🌤️", 2: "⛅", 3: "☁️", 45: "🌫️", 51: "🌦️", 61: "🌧️", 71: "❄️", 95: "⛈️" };
+    // URL FIJA DE TU REPOSITORIO
+    const GITHUB_URL = "https://raw.githubusercontent.com/antoniodetm/mi-viaje/main/itinerario_viaje.json";
 
     window.onload = () => {
         const saved = localStorage.getItem('miItinerario');
@@ -93,36 +97,50 @@
         } else { addDia(); }
     };
 
+    async function sincronizarGitHub() {
+        const btn = document.getElementById('sync-btn');
+        btn.innerText = "⌛...";
+        
+        // Usamos un proxy diferente (Codetabs) que suele tener menos restricciones que AllOrigins
+        const finalUrl = `https://api.codetabs.com/v1/proxy?quest=${GITHUB_URL}&t=${Date.now()}`;
+
+        try {
+            const response = await fetch(finalUrl);
+            if (!response.ok) throw new Error("Error en Proxy");
+            const d = await response.json();
+            
+            if (confirm("¿Actualizar itinerario desde GitHub?")) {
+                document.getElementById('titulo-viaje').innerText = d.titulo || "Mi Itinerario";
+                document.getElementById('itinerario').innerHTML = d.cuerpo;
+                saveAll();
+                location.reload();
+            }
+        } catch (e) {
+            // Si el primer proxy falla, intentamos con AllOrigins como respaldo
+            try {
+                const altRes = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(GITHUB_URL)}&t=${Date.now()}`);
+                const altData = await altRes.json();
+                const d = JSON.parse(altData.contents);
+                if (confirm("¿Actualizar itinerario desde GitHub (vía respaldo)?")) {
+                    document.getElementById('titulo-viaje').innerText = d.titulo;
+                    document.getElementById('itinerario').innerHTML = d.cuerpo;
+                    saveAll();
+                    location.reload();
+                }
+            } catch (err) {
+                alert("Error de conexión: El servicio de GitHub o el Proxy están saturados. Inténtalo en unos segundos.");
+            }
+        } finally {
+            btn.innerText = "🔄 Sync";
+        }
+    }
+
     function saveAll() {
         document.querySelectorAll('input[type="time"]').forEach(i => i.setAttribute('value', i.value));
+        document.querySelectorAll('.map-url-input').forEach(i => i.setAttribute('value', i.value));
         document.querySelectorAll('.check-completar').forEach(c => c.checked ? c.setAttribute('checked', 'checked') : c.removeAttribute('checked'));
         localStorage.setItem('miItinerario', document.getElementById('itinerario').innerHTML);
         localStorage.setItem('tituloViaje', document.getElementById('titulo-viaje').innerText);
-    }
-
-    async function syncGitHub() {
-        // Añadimos un parámetro de tiempo para evitar la caché de GitHub
-        const url = 'https://raw.githubusercontent.com/antoniodetm/mi-viaje/refs/heads/main/itinerario_viaje.json?t=' + Date.now();
-        
-        try {
-            const response = await fetch(url);
-            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-            
-            const d = await response.json();
-            
-            if (d.cuerpo && d.titulo) {
-                document.getElementById('itinerario').innerHTML = d.cuerpo;
-                document.getElementById('titulo-viaje').innerText = d.titulo;
-                saveAll();
-                actualizarEfectos();
-                alert("✅ Sincronizado correctamente desde GitHub");
-            } else {
-                throw new Error("El archivo JSON no tiene el formato esperado (titulo y cuerpo)");
-            }
-        } catch (error) {
-            console.error('Error de sincronización:', error);
-            alert("❌ Error: " + error.message);
-        }
     }
 
     function addDia() {
@@ -168,7 +186,7 @@
                 <div class="check-wrapper"><input type="checkbox" class="check-completar" onclick="toggleCompletado(this)"></div>
                 <button class="btn-ctrl" onclick="moveUp(this)">▲</button>
                 <button class="btn-ctrl" onclick="moveDown(this)">▼</button>
-                <button class="btn-ctrl btn-ctrl-del" onclick="this.closest('.bloque').remove();saveAll();">✕</button>
+                <button class="btn-ctrl" style="color:#ff3b30; border-top:1px solid #eee" onclick="if(confirm('¿Borrar?')){this.closest('.bloque').remove();saveAll();}">✕</button>
             </div>
             <table oninput="saveAll()">
                 <tr class="destacado ${clase}"><td colspan="2" contenteditable="true">${texto}</td><td style="text-align:right"><input type="time"></td></tr>
@@ -194,7 +212,7 @@
                 const icon = weatherIcons[wData.daily.weathercode[0]] || "🌡️";
                 wrapperClima.innerHTML = `<span class="clima-icon">${icon}</span><div class="temp-wrapper"><span class="temp-max">${Math.round(wData.daily.temperature_2m_max[0])}°</span><span class="temp-min">${Math.round(wData.daily.temperature_2m_min[0])}°</span></div>`;
             }
-        } catch (e) { console.error(e); }
+        } catch (e) {}
     }
 
     function toggleDia(header) {
