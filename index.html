@@ -37,17 +37,10 @@
         .destacado td { font-weight: 800; color: white; }
         .col-label { width: 1px; white-space: nowrap; font-size: 11px; font-weight: 600; color: #8e8e93; text-transform: uppercase; padding-right: 10px; }
         .col-data { width: 100%; }
-
         .pin-map { cursor: pointer; font-size: 18px; filter: grayscale(1); }
         .pin-active { filter: grayscale(0) !important; }
         .media-area { width: 100%; display: block; margin-top: 5px; }
         .media-item img { width: 100%; border-radius: 8px; margin-bottom: 5px; }
-        .btn-danger { background: #ff3b30 !important; color: white !important; }
-
-        .tipo-visita { background-color: #34c759 !important; }
-        .tipo-comida { background-color: #ff9500 !important; }
-        .tipo-cena { background-color: #af52de !important; }
-        .tipo-salida { background-color: #8e8e93 !important; }
     </style>
 </head>
 <body>
@@ -71,19 +64,21 @@
 
 <script>
     const weatherIcons = { 0: "☀️", 1: "🌤️", 2: "⛅", 3: "☁️", 45: "🌫️", 51: "🌦️", 61: "🌧️", 71: "❄️", 95: "⛈️" };
+    // URL exacta proporcionada por el usuario
     const GITHUB_URL = "https://raw.githubusercontent.com/antoniodetm/mi-viaje/main/itinerario_viaje.json";
 
     window.onload = () => {
         const saved = localStorage.getItem('miItinerario');
         const savedTitle = localStorage.getItem('tituloViaje');
         if (savedTitle) document.getElementById('titulo-viaje').innerText = savedTitle;
-        if (saved && saved !== "undefined") {
+        if (saved && saved !== "undefined" && saved.trim() !== "") {
             document.getElementById('itinerario').innerHTML = saved;
             actualizarEfectos();
         } else { addDia(); }
     };
 
     function saveAll() {
+        // Aseguramos que los valores visuales se escriban en el HTML antes de guardar
         document.querySelectorAll('input[type="time"]').forEach(i => i.setAttribute('value', i.value));
         document.querySelectorAll('input[type="checkbox"]').forEach(i => i.checked ? i.setAttribute('checked', 'checked') : i.removeAttribute('checked'));
         
@@ -91,24 +86,72 @@
         localStorage.setItem('tituloViaje', document.getElementById('titulo-viaje').innerText);
     }
 
-    function addDia() {
-        let fechaParaMostrar = new Date().toISOString().split('T')[0];
-        const todosLosDias = document.querySelectorAll('.dia-container h3');
-        if (todosLosDias.length > 0) {
-            const ultimaFechaTexto = todosLosDias[todosLosDias.length - 1].innerText.replace('DÍA: ', '').trim();
-            const ultimaFecha = new Date(ultimaFechaTexto);
-            if (!isNaN(ultimaFecha)) {
-                ultimaFecha.setDate(ultimaFecha.getDate() + 1);
-                fechaParaMostrar = ultimaFecha.toISOString().split('T')[0];
-            }
-        }
+    // CARGA INTELIGENTE: Detecta si el JSON usa "itinerario" (viejo) o "cuerpo" (nuevo)
+    function cargarJSON(d) {
+        if (!d) return;
+        const contenido = d.cuerpo || d.itinerario || "";
+        const titulo = d.titulo || "Mi Itinerario";
+        
+        document.getElementById('itinerario').innerHTML = contenido;
+        document.getElementById('titulo-viaje').innerText = titulo;
+        
+        saveAll();
+        actualizarEfectos();
+        alert("¡Datos cargados con éxito!");
+    }
 
+    function importarDatos(input) {
+        if (!input.files[0]) return;
+        const reader = new FileReader();
+        reader.onload = e => {
+            try {
+                const d = JSON.parse(e.target.result);
+                cargarJSON(d);
+            } catch (err) { alert("Error: El archivo no es un JSON válido."); }
+        };
+        reader.readAsText(input.files[0]);
+        input.value = "";
+    }
+
+    async function sincronizarGitHub() {
+        const btn = document.getElementById('sync-btn');
+        btn.innerText = "⌛...";
+        try {
+            // Usamos un proxy para evitar bloqueos de CORS y añadimos timestamp para evitar caché
+            const resp = await fetch(`https://api.codetabs.com/v1/proxy?quest=${GITHUB_URL}&t=${Date.now()}`);
+            const d = await resp.json();
+            if (confirm("¿Sincronizar datos desde GitHub?")) {
+                cargarJSON(d);
+            }
+        } catch (e) { 
+            alert("No se pudo conectar con GitHub. Verifica tu conexión."); 
+        } finally { 
+            btn.innerText = "🔄 Sync"; 
+        }
+    }
+
+    function exportarDatos() {
+        saveAll();
+        const d = { 
+            titulo: document.getElementById('titulo-viaje').innerText, 
+            cuerpo: document.getElementById('itinerario').innerHTML 
+        };
+        const blob = new Blob([JSON.stringify(d)], {type: "application/json"});
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = "itinerario_viaje.json";
+        a.click();
+    }
+
+    // --- FUNCIONES DE INTERFAZ ---
+    function addDia() {
+        let fecha = new Date().toISOString().split('T')[0];
         const id = "dia-" + Date.now();
         const html = `<div class="dia-container" id="${id}">
             <div class="bloque-dia-header" onclick="toggleDia(this)">
                 <div class="header-info-wrapper">
-                    <h3 contenteditable="true" onclick="event.stopPropagation()" onblur="saveAll()">DÍA: ${fechaParaMostrar}</h3>
-                    <div class="nombre-dia-personalizado" contenteditable="true" onclick="event.stopPropagation()" onblur="fetchClimaGlobal(this)">Destino...</div>
+                    <h3 contenteditable="true" onclick="event.stopPropagation()">DÍA: ${fecha}</h3>
+                    <div class="nombre-dia-personalizado" contenteditable="true" onblur="fetchClimaGlobal(this)">Destino...</div>
                 </div>
                 <div class="clima-wrapper"></div>
                 <div class="dia-management-block">
@@ -131,8 +174,27 @@
         saveAll();
     }
 
-    async function fetchClimaGlobal(el) {
+    function addEvento(diaId, tipo) {
+        const lista = document.querySelector(`#${diaId} .eventos-lista`);
+        const conf = { visita: ['tipo-visita','VISITA'], comida: ['tipo-comida','COMIDA'], cena: ['tipo-cena','CENA'], 'solo-salida': ['tipo-salida','SALIDA'] };
+        const html = `<div class="bloque">
+            <div class="controls-left">
+                <input type="checkbox" class="check-completar" onclick="toggleCompletado(this)">
+                <button class="btn-ctrl" onclick="moveUp(this)">▲</button>
+                <button class="btn-ctrl" onclick="moveDown(this)">▼</button>
+                <button class="btn-ctrl" style="color:red" onclick="this.closest('.bloque').remove();saveAll();">✕</button>
+            </div>
+            <table oninput="saveAll()">
+                <tr class="destacado ${conf[tipo][0]}"><td colspan="2" contenteditable="true">${conf[tipo][1]}</td><td style="text-align:right"><input type="time" onchange="saveAll()"></td></tr>
+                <tr><td class="col-label">Lugar</td><td contenteditable="true">...</td><td style="text-align:right">📍</td></tr>
+                <tr><td class="col-label">Notas</td><td colspan="2" contenteditable="true"></td></tr>
+            </table>
+        </div>`;
+        lista.insertAdjacentHTML('beforeend', html);
         saveAll();
+    }
+
+    async function fetchClimaGlobal(el) {
         const nombre = el.innerText.trim();
         const wrapperClima = el.closest('.dia-container').querySelector('.clima-wrapper');
         if (!nombre || nombre === "Destino...") return;
@@ -150,80 +212,11 @@
         } catch (e) {}
     }
 
-    function addEvento(diaId, tipo) {
-        const lista = document.querySelector(`#${diaId} .eventos-lista`);
-        const conf = { visita: ['tipo-visita','VISITA'], comida: ['tipo-comida','COMIDA'], cena: ['tipo-cena','CENA'], 'solo-salida': ['tipo-salida','SALIDA'] };
-        const html = `<div class="bloque">
-            <div class="controls-left">
-                <input type="checkbox" class="check-completar" onclick="toggleCompletado(this)">
-                <button class="btn-ctrl" onclick="moveUp(this)">▲</button>
-                <button class="btn-ctrl" onclick="moveDown(this)">▼</button>
-                <button class="btn-ctrl" style="color:red" onclick="if(confirm('¿Borrar?')){this.closest('.bloque').remove();saveAll();}">✕</button>
-            </div>
-            <table oninput="saveAll()">
-                <tr class="destacado ${conf[tipo][0]}"><td colspan="2" contenteditable="true">${conf[tipo][1]}</td><td style="text-align:right"><input type="time" onchange="saveAll()"></td></tr>
-                <tr><td class="col-label">Lugar</td><td contenteditable="true">...</td><td style="text-align:right"><span class="pin-map" onclick="openMap(this)">📍</span></td></tr>
-                <input type="hidden" class="map-url-hidden">
-                <tr><td class="col-label">Notas</td><td colspan="2" contenteditable="true"></td></tr>
-                <tr><td class="col-label">Media</td><td colspan="2"><div class="media-area"></div><button class="action-btn" style="background:#8e8e93; font-size:10px; width:40px;" onclick="this.nextElementSibling.click()">📸</button><input type="file" hidden accept="image/*" onchange="processFile(this)"></td></tr>
-            </table>
-        </div>`;
-        lista.insertAdjacentHTML('beforeend', html);
-        saveAll();
-    }
-
-    function processFile(input) {
-        const reader = new FileReader();
-        reader.onload = e => {
-            input.closest('td').querySelector('.media-area').innerHTML = `<div class="media-item"><img src="${e.target.result}"></div>`;
-            saveAll();
-        };
-        reader.readAsDataURL(input.files[0]);
-    }
-
     function toggleDia(header) { if (event.target.hasAttribute('contenteditable') || event.target.tagName === 'BUTTON') return; header.nextElementSibling.classList.toggle('abierto'); }
     function toggleCompletado(check) { check.closest('.bloque').classList.toggle('completado', check.checked); saveAll(); }
     function moverDia(btn, dir) { const dia = btn.closest('.dia-container'); dir === 'arriba' ? dia.previousElementSibling?.before(dia) : dia.nextElementSibling?.after(dia); saveAll(); }
     function moveUp(btn) { const b = btn.closest('.bloque'); b.previousElementSibling?.before(b); saveAll(); }
     function moveDown(btn) { const b = btn.closest('.bloque'); b.nextElementSibling?.after(b); saveAll(); }
-    
-    function exportarDatos() {
-        saveAll();
-        const d = { titulo: document.getElementById('titulo-viaje').innerText, cuerpo: document.getElementById('itinerario').innerHTML };
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(new Blob([JSON.stringify(d)], {type: "application/json"}));
-        a.download = "viaje.json";
-        a.click();
-    }
-
-    function importarDatos(input) {
-        const reader = new FileReader();
-        reader.onload = e => {
-            const d = JSON.parse(e.target.result);
-            document.getElementById('itinerario').innerHTML = d.cuerpo;
-            document.getElementById('titulo-viaje').innerText = d.titulo;
-            saveAll();
-            actualizarEfectos();
-        };
-        reader.readAsText(input.files[0]);
-    }
-
-    async function sincronizarGitHub() {
-        const btn = document.getElementById('sync-btn');
-        btn.innerText = "⌛...";
-        try {
-            const resp = await fetch(`https://api.codetabs.com/v1/proxy?quest=${GITHUB_URL}&t=${Date.now()}`);
-            const d = await resp.json();
-            if (confirm("¿Actualizar?")) {
-                document.getElementById('itinerario').innerHTML = d.cuerpo;
-                document.getElementById('titulo-viaje').innerText = d.titulo;
-                saveAll();
-                actualizarEfectos();
-            }
-        } catch (e) { alert("Error"); }
-        finally { btn.innerText = "🔄 Sync"; }
-    }
-
     function limpiarTodo() { if(confirm("¿Borrar todo?")) { localStorage.clear(); location.reload(); } }
 
     function actualizarEfectos() { 
