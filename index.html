@@ -14,8 +14,8 @@
         .dia-container { margin-bottom: 5px; border: 1px solid #d1d1d6; border-radius: 8px; background: #fff; overflow: hidden; display: flex; flex-direction: column; }
         .bloque-dia-header { background: #1c1c1e; color: white; display: grid; grid-template-columns: 1fr auto 35px; align-items: center; cursor: pointer; min-height: 55px; }
         .header-info-wrapper { padding: 2px 6px; display: flex; flex-direction: column; }
-        .header-info-wrapper h3 { margin: 0; font-size: 12px; font-weight: 400; opacity: 0.7; text-transform: uppercase; }
-        .nombre-dia-personalizado { font-size: 22px; font-weight: 900; line-height: 1; min-width: 80px; }
+        .header-info-wrapper h3 { margin: 0; font-size: 12px; font-weight: 400; opacity: 0.7; text-transform: uppercase; outline: none; }
+        .nombre-dia-personalizado { font-size: 22px; font-weight: 900; line-height: 1; min-width: 80px; outline: none; }
         
         .clima-wrapper { display: flex; align-items: center; gap: 4px; padding-right: 4px; }
         .clima-icon { font-size: 24px; }
@@ -84,10 +84,18 @@
 </div>
 
 <script>
-    const weatherIcons = { 0: "☀️", 1: "🌤️", 2: "⛅", 3: "☁️", 45: "🌫️", 51: "🌦️", 61: "🌧️", 71: "❄️", 95: "⛈️" };
+    const weatherIcons = { 
+    0: "☀️", 1: "🌤️", 2: "⛅", 3: "☁️", 
+    45: "🌫️", 48: "🌫️", 
+    51: "🌦️", 53: "🌦️", 55: "🌦️", 
+    61: "🌧️", 63: "🌧️", 65: "🌧️", 
+    71: "❄️", 73: "❄️", 75: "❄️", 
+    77: "🌨️",
+    80: "🌦️", 81: "🌧️", 82: "🌧️",
+    95: "⛈️", 96: "⛈️", 99: "⛈️" 
+};
     const GITHUB_URL = "https://raw.githubusercontent.com/antoniodetm/mi-viaje/main/itinerario_viaje.json";
 
-    // GESTIÓN DE CLIC EN ENLACES DENTRO DE NOTAS
     document.addEventListener('click', function(e) {
         if (e.target.tagName === 'A' && e.target.closest('.col-data')) {
             window.open(e.target.href, '_blank');
@@ -160,8 +168,8 @@
         const html = `<div class="dia-container" id="${id}">
             <div class="bloque-dia-header" onclick="toggleDia(this)">
                 <div class="header-info-wrapper">
-                    <h3 contenteditable="true" onclick="event.stopPropagation()">${fecha}</h3>
-                    <div class="nombre-dia-personalizado" contenteditable="true" onblur="fetchClimaGlobal(this)">Destino...</div>
+                    <h3 contenteditable="true" onclick="event.stopPropagation()" onblur="fetchClimaGlobal(this.nextElementSibling)">${fecha}</h3>
+                    <div class="nombre-dia-personalizado" contenteditable="true" onblur="fetchClimaGlobal(this)" onclick="event.stopPropagation()">Destino...</div>
                 </div>
                 <div class="clima-wrapper"></div>
                 <div class="dia-management-block">
@@ -258,18 +266,34 @@
     }
 
     async function fetchClimaGlobal(el) {
+        // 'el' siempre debe ser el div de nombre-dia-personalizado
+        const container = el.closest('.dia-container');
         const nombre = el.innerText.trim();
-        const wrapper = el.closest('.dia-container').querySelector('.clima-wrapper');
+        const fechaStr = container.querySelector('h3').innerText.trim();
+        const wrapper = container.querySelector('.clima-wrapper');
+        
         if (!nombre || nombre === "Destino...") return;
+        
         try {
             const geo = await (await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(nombre)}&count=1&language=es&format=json`)).json();
             if (geo.results) {
                 const { latitude, longitude } = geo.results[0];
-                const w = await (await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&daily=weathercode,temperature_2m_max,temperature_2m_min&timezone=auto`)).json();
-                wrapper.innerHTML = `<span class="clima-icon">${weatherIcons[w.daily.weathercode[0]] || "🌡️"}</span><div class="temp-row"><span style="color:#ff453a">${Math.round(w.daily.temperature_2m_max[0])}°</span><span style="color:#0a84ff">${Math.round(w.daily.temperature_2m_min[0])}°</span></div>`;
+                let urlClima = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&daily=weathercode,temperature_2m_max,temperature_2m_min&timezone=auto`;
+                
+                // Si la fecha tiene formato YYYY-MM-DD intentamos pedir esa fecha exacta
+                if (/^\d{4}-\d{2}-\d{2}$/.test(fechaStr)) {
+                    urlClima += `&start_date=${fechaStr}&end_date=${fechaStr}`;
+                }
+
+                const w = await (await fetch(urlClima)).json();
+                if (w.daily) {
+                    wrapper.innerHTML = `<span class="clima-icon">${weatherIcons[w.daily.weathercode[0]] || "🌡️"}</span><div class="temp-row"><span style="color:#ff453a">${Math.round(w.daily.temperature_2m_max[0])}°</span><span style="color:#0a84ff">${Math.round(w.daily.temperature_2m_min[0])}°</span></div>`;
+                } else {
+                    wrapper.innerHTML = "---";
+                }
                 saveAll();
             }
-        } catch (e) {}
+        } catch (e) { wrapper.innerHTML = "Err"; }
     }
 
     function toggleDia(header) { if (!event.target.hasAttribute('contenteditable') && event.target.tagName !== 'BUTTON') header.nextElementSibling.classList.toggle('abierto'); }
