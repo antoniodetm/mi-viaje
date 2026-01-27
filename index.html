@@ -154,13 +154,29 @@
         input.value = "";
     }
 
-    async function sincronizarGitHub() {
-        try {
-            const resp = await fetch(`https://api.codetabs.com/v1/proxy?quest=${GITHUB_URL}&t=${Date.now()}`);
-            const d = await resp.json();
-            if (confirm("¿Sincronizar?")) cargarJSON(d);
-        } catch (e) { alert("Error Sync."); }
+   async function sincronizarGitHub() {
+    // Pedimos el nombre del archivo al usuario
+    const nombreArchivo = prompt("Introduce el nombre del viaje (ej: japon, paris):", "itinerario_viaje");
+    
+    if (!nombreArchivo) return; // Si cancela, no hace nada
+
+    // Construimos la URL dinámica basada en tu repo
+    const URL_DINAMICA = `https://raw.githubusercontent.com/antoniodetm/mi-viaje/main/${nombreArchivo}.json`;
+
+    try {
+        // Usamos el proxy para evitar problemas de CORS y caché
+        const resp = await fetch(`https://api.codetabs.com/v1/proxy?quest=${URL_DINAMICA}&t=${Date.now()}`);
+        
+        if (!resp.ok) throw new Error("Archivo no encontrado");
+        
+        const d = await resp.json();
+        if (confirm(`¿Sincronizar viaje: ${nombreArchivo}?`)) {
+            cargarJSON(d);
+        }
+    } catch (e) { 
+        alert("Error: No se pudo encontrar el archivo '" + nombreArchivo + ".json' en GitHub."); 
     }
+}
 
     function addDia() {
         let fecha = new Date().toISOString().split('T')[0];
