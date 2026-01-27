@@ -57,9 +57,12 @@
         .btn-mapa.con-url { opacity: 1; }
         
         .media-area { width: 100%; display: block; margin-top: 2px; }
-        .media-item img { width: 100%; border-radius: 4px; margin-bottom: 2px; }
+        .media-item { position: relative; margin-bottom: 4px; }
+        .media-item img { width: 100%; border-radius: 4px; display: block; }
         .media-btns { display: flex; gap: 4px; margin-top: 2px; }
         
+        .btn-delete-media { position: absolute; top: 5px; right: 5px; background: rgba(255,59,48,0.8); color: white; border-radius: 50%; width: 22px; height: 22px; text-align: center; cursor: pointer; font-size: 14px; line-height: 22px; font-weight: bold; border: none; z-index: 5; }
+
         input[type="time"] { border: none; font-family: inherit; font-size: 16px; font-weight: 900; background: transparent; color: inherit; width: 85px; }
         .header-evento-color input[type="time"] { color: white; }
     </style>
@@ -84,23 +87,7 @@
 </div>
 
 <script>
-    const weatherIcons = { 
-    0: "☀️", 1: "🌤️", 2: "⛅", 3: "☁️", 
-    45: "🌫️", 48: "🌫️", 
-    51: "🌦️", 53: "🌦️", 55: "🌦️", 
-    61: "🌧️", 63: "🌧️", 65: "🌧️", 
-    71: "❄️", 73: "❄️", 75: "❄️", 
-    77: "🌨️",
-    80: "🌦️", 81: "🌧️", 82: "🌧️",
-    95: "⛈️", 96: "⛈️", 99: "⛈️" 
-};
-    const GITHUB_URL = "https://raw.githubusercontent.com/antoniodetm/mi-viaje/main/itinerario_viaje.json";
-
-    document.addEventListener('click', function(e) {
-        if (e.target.tagName === 'A' && e.target.closest('.col-data')) {
-            window.open(e.target.href, '_blank');
-        }
-    });
+    const weatherIcons = { 0: "☀️", 1: "🌤️", 2: "⛅", 3: "☁️", 45: "🌫️", 48: "🌫️", 51: "🌦️", 53: "🌦️", 55: "🌦️", 61: "🌧️", 63: "🌧️", 65: "🌧️", 71: "❄️", 73: "❄️", 75: "❄️", 77: "🌨️", 80: "🌦️", 81: "🌧️", 82: "🌧️", 95: "⛈️", 96: "⛈️", 99: "⛈️" };
 
     window.onload = () => {
         const saved = localStorage.getItem('miItinerario');
@@ -122,9 +109,7 @@
     function linkify(el) {
         let text = el.innerText;
         const urlRegex = /(https?:\/\/[^\s]+)/g;
-        el.innerHTML = text.replace(urlRegex, function(url) {
-            return '<a href="' + url + '" target="_blank">' + url + '</a>';
-        });
+        el.innerHTML = text.replace(urlRegex, url => `<a href="${url}" target="_blank">${url}</a>`);
         saveAll();
     }
 
@@ -154,29 +139,17 @@
         input.value = "";
     }
 
-   async function sincronizarGitHub() {
-    // Pedimos el nombre del archivo al usuario
-    const nombreArchivo = prompt("Introduce el nombre del viaje (ej: japon, paris):", "itinerario_viaje");
-    
-    if (!nombreArchivo) return; // Si cancela, no hace nada
-
-    // Construimos la URL dinámica basada en tu repo
-    const URL_DINAMICA = `https://raw.githubusercontent.com/antoniodetm/mi-viaje/main/${nombreArchivo}.json`;
-
-    try {
-        // Usamos el proxy para evitar problemas de CORS y caché
-        const resp = await fetch(`https://api.codetabs.com/v1/proxy?quest=${URL_DINAMICA}&t=${Date.now()}`);
-        
-        if (!resp.ok) throw new Error("Archivo no encontrado");
-        
-        const d = await resp.json();
-        if (confirm(`¿Sincronizar viaje: ${nombreArchivo}?`)) {
-            cargarJSON(d);
-        }
-    } catch (e) { 
-        alert("Error: No se pudo encontrar el archivo '" + nombreArchivo + ".json' en GitHub."); 
+    async function sincronizarGitHub() {
+        const nombreArchivo = prompt("Nombre del archivo en GitHub (sin .json):", "itinerario_viaje");
+        if (!nombreArchivo) return;
+        const URL_DINAMICA = `https://raw.githubusercontent.com/antoniodetm/mi-viaje/main/${nombreArchivo}.json`;
+        try {
+            const resp = await fetch(`https://api.codetabs.com/v1/proxy?quest=${URL_DINAMICA}&t=${Date.now()}`);
+            if (!resp.ok) throw new Error();
+            const d = await resp.json();
+            if (confirm(`¿Sincronizar "${nombreArchivo}"?`)) cargarJSON(d);
+        } catch (e) { alert("Error: No se encontró el archivo."); }
     }
-}
 
     function addDia() {
         let fecha = new Date().toISOString().split('T')[0];
@@ -212,9 +185,7 @@
         const lista = document.querySelector(`#${diaId} .eventos-lista`);
         const conf = { visita:['tipo-visita','VISITA'], comida:['tipo-comida','COMIDA'], cena:['tipo-cena','CENA'], salida:['tipo-salida','SALIDA'] };
         const [clase, titulo] = conf[tipo];
-        
-        let filaSalida = (tipo === 'visita' || tipo === 'comida') ? 
-            `<tr><td class="col-label">Salida</td><td colspan="2" style="text-align:right"><input type="time" onchange="saveAll()"></td></tr>` : "";
+        let filaSalida = (tipo === 'visita' || tipo === 'comida') ? `<tr><td class="col-label">Salida</td><td colspan="2" style="text-align:right"><input type="time" onchange="saveAll()"></td></tr>` : "";
 
         const html = `<div class="bloque ${clase}">
             <div class="controls-left">
@@ -243,17 +214,6 @@
         saveAll();
     }
 
-    function gestionarMapa(el) {
-        let url = el.dataset.url || "";
-        if (!url) {
-            let n = prompt("URL Maps:");
-            if (n) { el.dataset.url = n; el.setAttribute('data-url', n); el.classList.add('con-url'); saveAll(); }
-        } else {
-            if (confirm("¿Abrir?")) window.open(url, "_blank");
-            else { let n = prompt("Editar:", url); if(n!==null){ el.dataset.url=n; el.setAttribute('data-url',n); n===""?el.classList.remove('con-url'):el.classList.add('con-url'); saveAll(); } }
-        }
-    }
-
     function processFile(input, tipo) {
         if(!input.files[0]) return;
         const reader = new FileReader();
@@ -265,51 +225,50 @@
                 img.onload = () => {
                     const canvas = document.createElement('canvas');
                     const MAX_WIDTH = 800;
-                    let width = img.width;
-                    let height = img.height;
+                    let width = img.width, height = img.height;
                     if (width > MAX_WIDTH) { height *= MAX_WIDTH / width; width = MAX_WIDTH; }
                     canvas.width = width; canvas.height = height;
                     canvas.getContext('2d').drawImage(img, 0, 0, width, height);
-                    container.innerHTML += `<div class="media-item"><img src="${canvas.toDataURL('image/jpeg', 0.7)}"></div>`;
+                    container.insertAdjacentHTML('beforeend', `<div class="media-item"><button class="btn-delete-media" onclick="this.parentElement.remove();saveAll()">✕</button><img src="${canvas.toDataURL('image/jpeg', 0.7)}"></div>`);
                     saveAll();
                 };
             } else {
-                container.innerHTML += `<div class="media-item"><audio controls src="${e.target.result}"></audio></div>`;
+                container.insertAdjacentHTML('beforeend', `<div class="media-item" style="display:flex; align-items:center; gap:5px;"><audio controls src="${e.target.result}" style="flex:1"></audio><button class="btn-delete-media" style="position:static" onclick="this.parentElement.remove();saveAll()">✕</button></div>`);
                 saveAll();
             }
         };
         reader.readAsDataURL(input.files[0]);
+        input.value = "";
     }
 
     async function fetchClimaGlobal(el) {
-        // 'el' siempre debe ser el div de nombre-dia-personalizado
         const container = el.closest('.dia-container');
-        const nombre = el.innerText.trim();
+        const nombre = container.querySelector('.nombre-dia-personalizado').innerText.trim();
         const fechaStr = container.querySelector('h3').innerText.trim();
         const wrapper = container.querySelector('.clima-wrapper');
-        
         if (!nombre || nombre === "Destino...") return;
-        
         try {
             const geo = await (await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(nombre)}&count=1&language=es&format=json`)).json();
             if (geo.results) {
                 const { latitude, longitude } = geo.results[0];
-                let urlClima = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&daily=weathercode,temperature_2m_max,temperature_2m_min&timezone=auto`;
-                
-                // Si la fecha tiene formato YYYY-MM-DD intentamos pedir esa fecha exacta
-                if (/^\d{4}-\d{2}-\d{2}$/.test(fechaStr)) {
-                    urlClima += `&start_date=${fechaStr}&end_date=${fechaStr}`;
-                }
-
-                const w = await (await fetch(urlClima)).json();
-                if (w.daily) {
-                    wrapper.innerHTML = `<span class="clima-icon">${weatherIcons[w.daily.weathercode[0]] || "🌡️"}</span><div class="temp-row"><span style="color:#ff453a">${Math.round(w.daily.temperature_2m_max[0])}°</span><span style="color:#0a84ff">${Math.round(w.daily.temperature_2m_min[0])}°</span></div>`;
-                } else {
-                    wrapper.innerHTML = "---";
-                }
+                let url = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&daily=weathercode,temperature_2m_max,temperature_2m_min&timezone=auto`;
+                if (/^\d{4}-\d{2}-\d{2}$/.test(fechaStr)) url += `&start_date=${fechaStr}&end_date=${fechaStr}`;
+                const w = await (await fetch(url)).json();
+                if (w.daily) wrapper.innerHTML = `<span class="clima-icon">${weatherIcons[w.daily.weathercode[0]] || "🌡️"}</span><div class="temp-row"><span style="color:#ff453a">${Math.round(w.daily.temperature_2m_max[0])}°</span><span style="color:#0a84ff">${Math.round(w.daily.temperature_2m_min[0])}°</span></div>`;
                 saveAll();
             }
         } catch (e) { wrapper.innerHTML = "Err"; }
+    }
+
+    function gestionarMapa(el) {
+        let url = el.dataset.url || "";
+        if (!url) {
+            let n = prompt("URL Maps:");
+            if (n) { el.dataset.url = n; el.setAttribute('data-url', n); el.classList.add('con-url'); saveAll(); }
+        } else {
+            if (confirm("¿Abrir?")) window.open(url, "_blank");
+            else { let n = prompt("Editar:", url); if(n!==null){ el.dataset.url=n; el.setAttribute('data-url',n); n===""?el.classList.remove('con-url'):el.classList.add('con-url'); saveAll(); } }
+        }
     }
 
     function toggleDia(header) { if (!event.target.hasAttribute('contenteditable') && event.target.tagName !== 'BUTTON') header.nextElementSibling.classList.toggle('abierto'); }
@@ -318,7 +277,6 @@
     function moveUp(btn) { const b = btn.closest('.bloque'); b.previousElementSibling?.before(b); saveAll(); }
     function moveDown(btn) { const b = btn.closest('.bloque'); b.nextElementSibling?.after(b); saveAll(); }
     function limpiarTodo() { if(confirm("¿Borrar?")) { localStorage.clear(); location.reload(); } }
-    
     function actualizarEfectos() { 
         document.querySelectorAll('.check-completar').forEach(c => c.checked = c.hasAttribute('checked'));
         document.querySelectorAll('input[type="time"]').forEach(i => i.value = i.getAttribute('value'));
