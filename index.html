@@ -51,7 +51,7 @@
 
         .col-label { width: 1px; white-space: nowrap; font-size: 12px; font-weight: 700; color: rgba(0,0,0,0.5); text-transform: uppercase; padding-right: 6px; }
         .col-data { width: 100%; font-weight: 500; word-break: break-all; }
-        .col-data a { color: #007aff; text-decoration: underline; cursor: pointer; }
+        .col-data a { color: #007aff !important; text-decoration: underline !important; cursor: pointer !important; }
 
         .btn-mapa { cursor: pointer; font-size: 20px; opacity: 0.3; }
         .btn-mapa.con-url { opacity: 1; }
@@ -62,6 +62,10 @@
         .media-btns { display: flex; gap: 4px; margin-top: 2px; }
         
         .btn-delete-media { position: absolute; top: 5px; right: 5px; background: rgba(255,59,48,0.8); color: white; border-radius: 50%; width: 22px; height: 22px; text-align: center; cursor: pointer; font-size: 14px; line-height: 22px; font-weight: bold; border: none; z-index: 5; }
+
+        .nota-item { display: flex; align-items: flex-start; gap: 4px; margin-bottom: 4px; border-bottom: 1px dashed rgba(0,0,0,0.1); padding-bottom: 4px; }
+        .nota-texto { flex: 1; outline: none; min-height: 20px; font-size: 14px; }
+        .btn-del-nota { color: #ff453a; font-weight: bold; cursor: pointer; padding: 0 4px; }
 
         input[type="time"] { border: none; font-family: inherit; font-size: 16px; font-weight: 900; background: transparent; color: inherit; width: 85px; }
         .header-evento-color input[type="time"] { color: white; }
@@ -107,9 +111,14 @@
     }
 
     function linkify(el) {
+        // Obtenemos solo el texto para evitar duplicar enlaces ya creados
         let text = el.innerText;
         const urlRegex = /(https?:\/\/[^\s]+)/g;
-        el.innerHTML = text.replace(urlRegex, url => `<a href="${url}" target="_blank">${url}</a>`);
+        
+        if (urlRegex.test(text)) {
+            // Reemplazamos el contenido con el enlace
+            el.innerHTML = text.replace(urlRegex, url => `<a href="${url}" target="_blank" onmousedown="window.open('${url}', '_blank')">${url}</a>`);
+        }
         saveAll();
     }
 
@@ -197,20 +206,31 @@
             <table oninput="saveAll()">
                 <tr class="header-evento-color"><td colspan="2" contenteditable="true">${titulo}</td><td style="text-align:right"><input type="time" onchange="saveAll()"></td></tr>
                 <tr><td class="col-label">Lugar</td><td contenteditable="true" class="col-data">...</td><td style="text-align:right; width:25px;" class="btn-mapa" data-url="" onclick="gestionarMapa(this)">📍</td></tr>
-                <tr><td class="col-label">Notas</td><td colspan="2" contenteditable="true" class="col-data" onblur="linkify(this)"></td></tr>
+                <tr><td class="col-label">Notas</td><td colspan="2" class="col-data">
+                    <div class="notas-container"></div>
+                    <button class="action-btn" style="background:#8e8e93; width:60px; height:20px; font-size:10px; margin-top:4px;" onclick="addNota(this)">+ NOTA</button>
+                </td></tr>
                 <tr><td class="col-label">Media</td><td colspan="2" class="col-data">
                     <div class="media-area"></div>
                     <div class="media-btns">
                         <button class="action-btn" style="background:#8e8e93; flex:1;" onclick="this.nextElementSibling.click()">📸</button>
                         <input type="file" hidden accept="image/*" onchange="processFile(this, 'img')">
-                        <button class="action-btn" style="background:#5856d6; flex:1;" onclick="this.nextElementSibling.click()">🎙️</button>
-                        <input type="file" hidden accept="audio/*" onchange="processFile(this, 'aud')">
                     </div>
                 </td></tr>
                 ${filaSalida}
             </table>
         </div>`;
         lista.insertAdjacentHTML('beforeend', html);
+        saveAll();
+    }
+
+    function addNota(btn, texto = "") {
+        const container = btn.previousElementSibling;
+        const html = `<div class="nota-item">
+            <div class="nota-texto" contenteditable="true" onblur="linkify(this)">${texto}</div>
+            <span class="btn-del-nota" onclick="this.parentElement.remove();saveAll();">✕</span>
+        </div>`;
+        container.insertAdjacentHTML('beforeend', html);
         saveAll();
     }
 
@@ -232,9 +252,6 @@
                     container.insertAdjacentHTML('beforeend', `<div class="media-item"><button class="btn-delete-media" onclick="this.parentElement.remove();saveAll()">✕</button><img src="${canvas.toDataURL('image/jpeg', 0.7)}"></div>`);
                     saveAll();
                 };
-            } else {
-                container.insertAdjacentHTML('beforeend', `<div class="media-item" style="display:flex; align-items:center; gap:5px;"><audio controls src="${e.target.result}" style="flex:1"></audio><button class="btn-delete-media" style="position:static" onclick="this.parentElement.remove();saveAll()">✕</button></div>`);
-                saveAll();
             }
         };
         reader.readAsDataURL(input.files[0]);
