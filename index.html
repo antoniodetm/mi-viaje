@@ -447,28 +447,30 @@
         }
 
         async function abrirDesdeGitHub() {
-            const githubUser = prompt("Usuario/Organización de GitHub:", "antoniodetm");
-            if (!githubUser) return;
-            const repoName = prompt("Nombre del repositorio:", "mi-viaje");
-            if (!repoName) return;
-            const branch = prompt("Rama (branch):", "main");
-            if (!branch) return;
-            const filePath = prompt("Ruta al archivo JSON dentro del repositorio (ej: itinerarios/paris.json):", "itinerario_viaje.json");
-            if (!filePath) return;
+            const filename = prompt("Introduce el nombre del archivo JSON (ej: albarracin):", "albarracin");
+            if (!filename) return;
 
-            const rawGitHubUrl = `https://raw.githubusercontent.com/${githubUser}/${repoName}/${branch}/${filePath}`;
+            // Construimos la URL completa asumiendo la ruta base
+            const baseUrl = "https://github.com/antoniodetm/mi-viaje/blob/main/";
+            const fullUrl = `${baseUrl}${filename}.json`;
+
+            let rawGitHubUrl = fullUrl;
+            if (fullUrl.includes("github.com") && fullUrl.includes("/blob/")) {
+                rawGitHubUrl = fullUrl.replace("github.com", "raw.githubusercontent.com").replace("/blob/", "/");
+            }
+
             const proxyUrl = `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(rawGitHubUrl)}&t=${Date.now()}`;
 
             try {
                 const resp = await fetch(proxyUrl);
                 if (!resp.ok) {
                     if (resp.status === 404) {
-                        throw new Error("Archivo no encontrado (404). Revisa la ruta, usuario, repositorio y rama.");
+                        throw new Error("Archivo no encontrado (404). Revisa la URL.");
                     }
                     throw new Error(`Error al cargar el archivo: ${resp.status} ${resp.statusText}`);
                 }
                 const d = await resp.json();
-                if (confirm(`¿Cargar "${filePath}" de GitHub? Esto sobrescribirá el itinerario actual.`)) {
+                if (confirm(`¿Cargar el itinerario desde GitHub? Esto sobrescribirá el itinerario actual.`)) {
                     cargarJSON(d);
                 }
             } catch (e) {
