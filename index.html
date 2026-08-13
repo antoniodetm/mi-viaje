@@ -459,7 +459,7 @@
                 rawGitHubUrl = fullUrl.replace("github.com", "raw.githubusercontent.com").replace("/blob/", "/");
             }
 
-            const proxyUrl = `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(rawGitHubUrl)}&t=${Date.now()}`;
+            const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(rawGitHubUrl)}`;
 
             try {
                 const resp = await fetch(proxyUrl);
@@ -469,7 +469,8 @@
                     }
                     throw new Error(`Error al cargar el archivo: ${resp.status} ${resp.statusText}`);
                 }
-                const d = await resp.json();
+                const data = await resp.json();
+                const d = JSON.parse(data.contents); // El contenido real está dentro de 'contents'
                 if (confirm(`¿Cargar el itinerario desde GitHub? Esto sobrescribirá el itinerario actual.`)) {
                     cargarJSON(d);
                 }
