@@ -153,10 +153,16 @@
 
         .dia-controls {
             display: grid;
-            grid-template-columns: repeat(4, 1fr);
+            grid-template-columns: repeat(5, 1fr);
             gap: 2px;
             padding: 2px;
             background: #f2f2f7;
+        }
+
+        .dia-controls .action-btn:disabled {
+            background-color: #8e8e93 !important;
+            cursor: not-allowed;
+            opacity: 0.7;
         }
 
         .bloque {
@@ -506,6 +512,7 @@
                     <button class="action-btn" style="background:#ff9500" onclick="addEvento('${id}', 'comida')">Comida</button>
                     <button class="action-btn" style="background:#af52de" onclick="addEvento('${id}', 'cena')">Cena</button>
                     <button class="action-btn" style="background:#8e8e93" onclick="addEvento('${id}', 'salida')">Otro</button>
+                    <button class="action-btn" style="background:#5ac8fa" onclick="recalcularDiaCompleto(this)">RECALC</button>
                 </div>
                 <div class="eventos-lista"></div>
             </div>
@@ -516,16 +523,18 @@
 
         function addEvento(diaId, tipo) {
             const lista = document.querySelector(`#${diaId} .eventos-lista`);
-            const conf = { visita: ['tipo-visita', 'VISITA'], comida: ['tipo-comida', 'COMIDA'], cena: ['tipo-cena', 'CENA'], salida: ['tipo-salida', 'SALIDA'] };
+            const conf = { visita: ['tipo-visita', 'VISITA'], comida: ['tipo-comida', 'COMIDA'], cena: ['tipo-cena', 'CENA'], salida: ['tipo-salida', 'OTRO'] };
             const [clase, titulo] = conf[tipo];
-            let filaSalida = (tipo === 'visita' || tipo === 'comida') ? `<tr><td class="col-label">Salida</td><td colspan="2" style="text-align:right"><input type="time" onchange="saveAll()"></td></tr>` : "";
+            let filasExtra = (tipo === 'visita' || tipo === 'comida') ?
+                `<tr><td class="col-label">Duración</td><td colspan="2"><input type="text" placeholder="ej: 1h 30m" onblur="calcularSalida(this)" style="width:100%; border:none; background:transparent; text-align:right; font-weight:500; font-size:16px;"></td></tr>
+                 <tr><td class="col-label">Salida</td><td colspan="2" style="text-align:right"><input type="time" onchange="recalcularSiguiente(this)"></td></tr>` : "";
 
             const html = `<div class="bloque ${clase}">
             <div class="controls-left">
                 <input type="checkbox" class="check-completar" onclick="toggleCompletado(this)">
                 <button class="btn-ctrl" onclick="moveUp(this)">▲</button>
                 <button class="btn-ctrl" onclick="moveDown(this)">▼</button>
-                <button class="btn-ctrl" style="color:red" onclick="borrarEvento(this)">✕</button>
+                <button class="btn-ctrl" style="color:red" onclick="borrarEvento(this); saveAll();">✕</button>
             </div>
             <table oninput="saveAll()">
                 <tbody><tr class="header-evento-color"><td colspan="2" contenteditable="true">${titulo}</td><td style="text-align:right"><input type="time" onchange="saveAll()"></td></tr>
@@ -535,7 +544,7 @@
                     <div class="notas-container"></div>
                     <button class="action-btn" style="background:#8e8e93; width:60px; height:20px; font-size:10px; margin-top:4px;" onclick="addNota(this)">+ NOTA</button>
                 </td></tr>
-                ${filaSalida}
+                ${filasExtra}
             </tbody></table>
         </div>`;
             lista.insertAdjacentHTML('beforeend', html);
@@ -596,10 +605,93 @@
                 const { longitude: lon1, latitude: lat1 } = geo1.results[0];
                 const { longitude: lon2, latitude: lat2 } = geo2.results[0];
                 const route = await (await fetch(`https://router.project-osrm.org/route/v1/driving/${lon1},${lat1};${lon2},${lat2}?overview=false`)).json();
-                const distanciaKm = (route.routes[0].distance / 1000).toFixed(0) + " km";
-                filaTrayecto.innerText = distanciaKm;
+
+                const distancia = route.routes[0].distance; // en metros
+                const duracion = route.routes[0].duration; // en segundos
+
+                // Muestra la distancia
+                filaTrayecto.innerText = (distancia / 1000).toFixed(0) + " km";
+
+                // Calcula y ajusta la hora
+                const inputHoraSalidaAnterior = bloqueAnterior.querySelector('input[onchange="recalcularSiguiente(this)"]');
+                const horaSalidaAnterior = (inputHoraSalidaAnterior && inputHoraSalidaAnterior.value) ? inputHoraSalidaAnterior.value : bloqueAnterior.querySelector('.header-evento-color input[type="time"]')?.value;
+
+                if (horaSalidaAnterior) {
+                    const [horas, minutos] = horaSalidaAnterior.split(':').map(Number);
+                    const fechaSalida = new Date();
+                    fechaSalida.setHours(horas, minutos, 0, 0);
+                    fechaSalida.setSeconds(fechaSalida.getSeconds() + duracion);
+
+                    const nuevaHoraLlegada = fechaSalida.toTimeString().slice(0, 5);
+                    const inputHoraActual = bloqueActual.querySelector('.header-evento-color input[type="time"]');
+                    if (inputHoraActual) { inputHoraActual.value = nuevaHoraLlegada; calcularSalida(inputHoraActual); }
+                }
+
                 saveAll();
             } catch (e) { filaTrayecto.innerText = "Error"; }
+        }
+
+        async function recalcularDiaCompleto(btn) {
+            const diaContainer = btn.closest('.dia-container');
+            if (!diaContainer) return;
+
+            // Evita que se ejecute si ya está calculando
+            if (diaContainer.dataset.calculando === 'true') return;
+
+            const lugares = diaContainer.querySelectorAll('.eventos-lista .bloque td[onblur="calcularDistancia(this)"]');
+
+            diaContainer.dataset.calculando = 'true';
+            btn.innerText = '...';
+
+            try {
+                for (const lugar of lugares) {
+                    await calcularDistancia(lugar);
+                }
+            } finally {
+                delete diaContainer.dataset.calculando;
+                btn.innerText = 'RECALC';
+            }
+        }
+
+        function parseDuracion(str) {
+            if (!str) return 0;
+            let totalMinutos = 0;
+            const horasMatch = str.match(/(\d+)\s*h/);
+            const minMatch = str.match(/(\d+)\s*m/);
+            if (horasMatch) totalMinutos += parseInt(horasMatch[1], 10) * 60;
+            if (minMatch) totalMinutos += parseInt(minMatch[1], 10);
+            if (!horasMatch && !minMatch && /^\d+$/.test(str)) totalMinutos = parseInt(str, 10);
+            return totalMinutos;
+        }
+
+        function calcularSalida(el) {
+            const bloque = el.closest('.bloque');
+            const inputLlegada = bloque.querySelector('.header-evento-color input[type="time"]');
+            const inputDuracion = bloque.querySelector('input[onblur="calcularSalida(this)"]');
+            const inputSalida = bloque.querySelector('input[onchange="recalcularSiguiente(this)"]');
+
+            if (!inputLlegada || !inputLlegada.value || !inputDuracion || !inputSalida) return;
+
+            const duracionMinutos = parseDuracion(inputDuracion.value);
+
+            const [horas, minutos] = inputLlegada.value.split(':').map(Number);
+            const fechaLlegada = new Date();
+            fechaLlegada.setHours(horas, minutos, 0, 0);
+
+            // Si hay duración, la suma. Si no, la hora de salida será la de llegada.
+            fechaLlegada.setMinutes(fechaLlegada.getMinutes() + duracionMinutos);
+
+            inputSalida.value = fechaLlegada.toTimeString().slice(0, 5);
+            recalcularSiguiente(inputSalida);
+            saveAll();
+        }
+
+        function recalcularSiguiente(elSalida) {
+            const bloqueActual = elSalida.closest('.bloque');
+            const bloqueSiguiente = bloqueActual.nextElementSibling;
+            const lugarSiguiente = bloqueSiguiente?.querySelector('td[onblur="calcularDistancia(this)"]');
+            if (lugarSiguiente) calcularDistancia(lugarSiguiente);
+            saveAll();
         }
 
         function gestionarMapa(el) {
@@ -637,7 +729,7 @@
         function borrarEvento(btn) {
             const bloque = btn.closest('.bloque');
             const bloqueSiguiente = bloque.nextElementSibling;
-            bloque.remove();
+            bloque.remove(); // El saveAll se llama en el onclick del botón
             const lugarSiguiente = bloqueSiguiente?.querySelector('td[onblur="calcularDistancia(this)"]');
             if (lugarSiguiente) calcularDistancia(lugarSiguiente);
             saveAll();
@@ -646,6 +738,19 @@
             document.querySelectorAll('.check-completar').forEach(c => c.checked = c.hasAttribute('checked'));
             document.querySelectorAll('input[type="time"]').forEach(i => i.value = i.getAttribute('value'));
             document.querySelectorAll('.btn-mapa').forEach(pin => { if (pin.getAttribute('data-url')) pin.classList.add('con-url'); });
+            document.querySelectorAll('input[onblur="calcularSalida(this)"]').forEach(i => i.value = i.getAttribute('value') || '');
+            actualizarEstructuraUI();
+        }
+
+        function actualizarEstructuraUI() {
+            document.querySelectorAll('.dia-container').forEach(dia => {
+                const controls = dia.querySelector('.dia-controls');
+                if (controls && !controls.querySelector('button[onclick^="recalcularDiaCompleto"]')) {
+                    const diaId = dia.id;
+                    controls.style.gridTemplateColumns = 'repeat(5, 1fr)';
+                    controls.insertAdjacentHTML('beforeend', `<button class="action-btn" style="background:#5ac8fa" onclick="recalcularDiaCompleto(this)">RECALC</button>`);
+                }
+            });
         }
 
         function recalcularDistanciasAfectadas(bloqueMovido, bloqueAfectado) {
@@ -653,6 +758,7 @@
             const lugarAfectado = bloqueAfectado?.querySelector('td[onblur="calcularDistancia(this)"]');
             if (lugarMovido) calcularDistancia(lugarMovido);
             if (lugarAfectado) calcularDistancia(lugarAfectado);
+            saveAll();
         }
     </script>
 </body>

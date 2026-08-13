@@ -1,0 +1,885 @@
+< !DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"><title>Itinerario Viaje Pro</title><style>body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background-color: #f2f2f7;
+    margin: 0;
+    padding: 2px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.container {
+    background: white;
+    padding: 2px;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    width: 100%;
+    max-width: 400px;
+    box-sizing: border-box;
+}
+
+.main-nav {
+    position: sticky;
+    top: 0;
+    background: white;
+    z-index: 1000;
+    padding: 2px 0;
+    border-bottom: 1px solid #d1d1d6;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.nav-row-quad {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 2px;
+}
+
+.action-btn {
+    padding: 0;
+    border: none;
+    border-radius: 4px;
+    font-weight: 700;
+    font-size: 13px;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 35px;
+    cursor: pointer;
+}
+
+.dia-container {
+    margin-bottom: 5px;
+    border: 1px solid #d1d1d6;
+    border-radius: 8px;
+    background: #fff;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.bloque-dia-header {
+    background: #1c1c1e;
+    color: white;
+    display: grid;
+    grid-template-columns: 1fr auto 35px;
+    align-items: center;
+    cursor: pointer;
+    min-height: 55px;
+}
+
+.header-info-wrapper {
+    padding: 2px 6px;
+    display: flex;
+    flex-direction: column;
+}
+
+.header-info-wrapper h3 {
+    margin: 0;
+    font-size: 12px;
+    font-weight: 400;
+    opacity: 0.7;
+    text-transform: uppercase;
+    outline: none;
+}
+
+.nombre-dia-personalizado {
+    font-size: 22px;
+    font-weight: 900;
+    line-height: 1;
+    min-width: 80px;
+    outline: none;
+}
+
+.clima-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding-right: 4px;
+}
+
+.clima-icon {
+    font-size: 24px;
+}
+
+.temp-row {
+    display: flex;
+    gap: 3px;
+    font-size: 16px;
+    font-weight: 900;
+}
+
+.dia-management-block {
+    display: flex;
+    flex-direction: column;
+    background: #2c2c2e;
+    align-self: stretch;
+    justify-content: space-around;
+}
+
+.btn-dia-order {
+    background: transparent;
+    border: none;
+    color: white;
+    font-size: 12px;
+    cursor: pointer;
+}
+
+.btn-dia-delete {
+    color: #ff453a;
+    font-size: 18px;
+    text-align: center;
+    cursor: pointer;
+}
+
+.dia-contenido {
+    display: none;
+    padding-bottom: 2px;
+}
+
+.dia-contenido.abierto {
+    display: block;
+}
+
+.dia-controls {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 2px;
+    padding: 2px;
+    background: #f2f2f7;
+}
+
+.dia-controls .action-btn:disabled {
+    background-color: #8e8e93 !important;
+    cursor: not-allowed;
+    opacity: 0.7;
+}
+
+.bloque {
+    margin: 4px 2px;
+    border-radius: 8px;
+    position: relative;
+    padding-left: 32px;
+    overflow: hidden;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.bloque.completado {
+    opacity: 0.3;
+    filter: grayscale(1);
+}
+
+.bloque.tipo-visita {
+    background-color: #e8f5e9;
+}
+
+.bloque.tipo-comida {
+    background-color: #fff3e0;
+}
+
+.bloque.tipo-cena {
+    background-color: #f3e5f5;
+}
+
+.bloque.tipo-salida {
+    background-color: #f5f5f5;
+}
+
+.controls-left {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 32px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    border-right: 1px solid rgba(0, 0, 0, 0.05);
+    background: rgba(0, 0, 0, 0.03);
+    z-index: 10;
+}
+
+.btn-ctrl {
+    width: 100%;
+    flex: 1;
+    border: none;
+    background: transparent;
+    font-size: 14px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #333;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    background: transparent;
+}
+
+td {
+    padding: 4px 6px;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    font-size: 16px;
+    color: #1c1c1e;
+}
+
+.header-evento-color td {
+    font-weight: 900;
+    color: white;
+    padding: 6px;
+    font-size: 15px;
+}
+
+.tipo-visita .header-evento-color {
+    background-color: #34c759;
+}
+
+.tipo-comida .header-evento-color {
+    background-color: #ff9500;
+}
+
+.tipo-cena .header-evento-color {
+    background-color: #af52de;
+}
+
+.tipo-salida .header-evento-color {
+    background-color: #8e8e93;
+}
+
+.col-label {
+    width: 1px;
+    white-space: nowrap;
+    font-size: 12px;
+    font-weight: 700;
+    color: rgba(0, 0, 0, 0.5);
+    text-transform: uppercase;
+    padding-right: 6px;
+}
+
+.col-data {
+    width: 100%;
+    font-weight: 500;
+    word-break: break-all;
+}
+
+.col-data a {
+    color: #007aff !important;
+    text-decoration: underline !important;
+    cursor: pointer !important;
+}
+
+.btn-mapa {
+    cursor: pointer;
+    font-size: 20px;
+    opacity: 0.3;
+}
+
+.btn-mapa.con-url {
+    opacity: 1;
+}
+
+.media-area {
+    width: 100%;
+    display: block;
+    margin-top: 2px;
+}
+
+.media-item {
+    position: relative;
+    margin-bottom: 4px;
+}
+
+.media-item img {
+    width: 100%;
+    border-radius: 4px;
+    display: block;
+}
+
+.media-btns {
+    display: flex;
+    gap: 4px;
+    margin-top: 2px;
+}
+
+.btn-delete-media {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    background: rgba(255, 59, 48, 0.8);
+    color: white;
+    border-radius: 50%;
+    width: 22px;
+    height: 22px;
+    text-align: center;
+    cursor: pointer;
+    font-size: 14px;
+    line-height: 22px;
+    font-weight: bold;
+    border: none;
+    z-index: 5;
+}
+
+.nota-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 4px;
+    margin-bottom: 4px;
+    border-bottom: 1px dashed rgba(0, 0, 0, 0.1);
+    padding-bottom: 4px;
+}
+
+.nota-texto {
+    flex: 1;
+    outline: none;
+    min-height: 20px;
+    font-size: 14px;
+}
+
+.btn-del-nota {
+    color: #ff453a;
+    font-weight: bold;
+    cursor: pointer;
+    padding: 0 4px;
+}
+
+input[type="time"] {
+    border: none;
+    font-family: inherit;
+    font-size: 16px;
+    font-weight: 900;
+    background: transparent;
+    color: inherit;
+    width: 85px;
+}
+
+.header-evento-color input[type="time"] {
+    color: white;
+}
+
+</style></head><body><div class="container"><h2 id="titulo-viaje" contenteditable="true" style="text-align:center; margin: 5px 0; font-size: 24px;"
+onblur="saveAll()">Mi Itinerario</h2><div class="main-nav"><div class="nav-row-quad"><button class="action-btn" style="background:#007aff" onclick="exportarDatos()">GUARDAR</button><button class="action-btn" style="background:#34c759"
+onclick="document.getElementById('import-file').click()">ABRIR</button><input type="file" id="import-file" style="display:none" accept=".json" onchange="importarDatos(this)"><button id="sync-btn" class="action-btn" style="background:#5856d6" onclick="abrirDesdeGitHub()">ABRIR GH</button><button class="action-btn" style="background:#1c1c1e" onclick="addDia()">+DÍA</button></div></div><div id="itinerario"></div><button class="action-btn"
+style="background:#ff3b30; width: 100%; margin-top: 5px; min-height: 25px; font-size: 10px;"
+
+onclick="limpiarTodo()">BORRAR TODO</button></div><script>const weatherIcons= {
+    0: "☀️", 1: "🌤️", 2: "⛅", 3: "☁️", 45: "🌫️", 48: "🌫️", 51: "🌦️", 53: "🌦️", 55: "🌦️", 61: "🌧️", 63: "🌧️", 65: "🌧️", 71: "❄️", 73: "❄️", 75: "❄️", 77: "🌨️", 80: "🌦️", 81: "🌧️", 82: "🌧️", 95: "⛈️", 96: "⛈️", 99: "⛈️"
+}
+
+;
+
+window.onload=()=> {
+    const saved=localStorage.getItem('miItinerario');
+    const savedTitle=localStorage.getItem('tituloViaje');
+    if (savedTitle) document.getElementById('titulo-viaje').innerText=savedTitle;
+
+    if (saved && saved !=="undefined" && saved.trim() !=="") {
+        document.getElementById('itinerario').innerHTML=saved;
+        actualizarEfectos();
+    }
+
+    else {
+        addDia();
+    }
+}
+
+;
+
+function saveAll() {
+    document.querySelectorAll('input[type="time"]').forEach(i=> i.setAttribute('value', i.value));
+    document.querySelectorAll('input[type="checkbox"]').forEach(i=> i.checked ? i.setAttribute('checked', 'checked') : i.removeAttribute('checked'));
+    localStorage.setItem('miItinerario', document.getElementById('itinerario').innerHTML);
+    localStorage.setItem('tituloViaje', document.getElementById('titulo-viaje').innerText);
+}
+
+function linkify(el) {
+    // Obtenemos solo el texto para evitar duplicar enlaces ya creados
+    let text=el.innerText;
+    const urlRegex=/(https?:\/\/[^\s]+)/g;
+
+    if (urlRegex.test(text)) {
+
+        // Reemplazamos el contenido con el enlace
+        el.innerHTML=text.replace(urlRegex, url=> `<a href="${url}" target="_blank" onmousedown="window.open('${url}', '_blank')" >$ {
+                url
+            }
+
+            </a>`);
+    }
+
+    saveAll();
+}
+
+function exportarDatos() {
+    saveAll();
+
+    const d= {
+        titulo: document.getElementById('titulo-viaje').innerText, cuerpo: document.getElementById('itinerario').innerHTML
+    }
+
+    ;
+
+    const blob=new Blob([JSON.stringify(d)], {
+        type: "application/json"
+    });
+const a=document.createElement('a');
+a.href=URL.createObjectURL(blob);
+a.download="itinerario_viaje.json";
+a.click();
+}
+
+function cargarJSON(d) {
+    if ( !d) return;
+    document.getElementById('itinerario').innerHTML=d.cuerpo || "";
+    document.getElementById('titulo-viaje').innerText=d.titulo || "Mi Itinerario";
+    saveAll();
+    actualizarEfectos();
+}
+
+function importarDatos(input) {
+    if ( !input.files[0]) return;
+    const reader=new FileReader();
+
+    reader.onload=e=> {
+        try {
+            cargarJSON(JSON.parse(e.target.result));
+        }
+
+        catch (err) {
+            alert("Error.");
+        }
+    }
+
+    ;
+    reader.readAsText(input.files[0]);
+    input.value="";
+}
+
+async function abrirDesdeGitHub() {
+    const filename=prompt("Introduce el nombre del archivo JSON (ej: albarracin):", "albarracin");
+    if ( !filename) return;
+
+    // Construimos la URL completa asumiendo la ruta base
+    const baseUrl="https://github.com/antoniodetm/mi-viaje/blob/main/";
+
+    const fullUrl=`$ {
+        baseUrl
+    }
+
+    $ {
+        filename
+    }
+
+    .json`;
+
+    let rawGitHubUrl=fullUrl;
+
+    if (fullUrl.includes("github.com") && fullUrl.includes("/blob/")) {
+        rawGitHubUrl=fullUrl.replace("github.com", "raw.githubusercontent.com").replace("/blob/", "/");
+    }
+
+    const proxyUrl=`https: //api.allorigins.win/get?url=${encodeURIComponent(rawGitHubUrl)}`;
+
+    try {
+        const resp=await fetch(proxyUrl);
+
+        if ( !resp.ok) {
+            if (resp.status===404) {
+                throw new Error("Archivo no encontrado (404). Revisa la URL.");
+            }
+
+            throw new Error(`Error al cargar el archivo: $ {
+                    resp.status
+                }
+
+                $ {
+                    resp.statusText
+                }
+
+                `);
+        }
+
+        const data=await resp.json();
+        const d=JSON.parse(data.contents); // El contenido real está dentro de 'contents'
+
+        if (confirm(`¿Cargar el itinerario desde GitHub? Esto sobrescribirá el itinerario actual.`)) {
+            cargarJSON(d);
+        }
+    }
+
+    catch (e) {
+        console.error("Error al abrir desde GitHub:", e);
+
+        alert(`Error: $ {
+                e.message || "No se pudo cargar el archivo desde GitHub."
+            }
+
+            `);
+    }
+}
+
+// Nota importante: Guardar directamente en GitHub desde el navegador es complejo y no se implementa por seguridad.
+// Para guardar tus viajes en GitHub, usa el botón "GUARDAR" para descargar el JSON localmente,
+// y luego súbelo manualmente a tu repositorio de GitHub.
+
+function addDia() {
+    let fecha=new Date().toISOString().split('T')[0];
+    const id="dia-"+Date.now();
+
+    const html=`<div class="dia-container" id="${id}"><div class="bloque-dia-header" onclick="toggleDia(this)"><div class="header-info-wrapper"><h3 contenteditable="true" onclick="event.stopPropagation()" onblur="fetchClimaGlobal(this.nextElementSibling)">$ {
+        fecha
+    }
+
+    </h3><div class="nombre-dia-personalizado" contenteditable="true" onblur="fetchClimaGlobal(this)" onclick="event.stopPropagation()">Destino...</div></div><div class="clima-wrapper"></div><div class="dia-management-block"><button class="btn-dia-order" onclick="event.stopPropagation(); moverDia(this, 'arriba')">▲</button><span class="btn-dia-delete" onclick="event.stopPropagation(); if(confirm('¿Borrar?')){this.closest('.dia-container').remove();saveAll();}">✕</span><button class="btn-dia-order" onclick="event.stopPropagation(); moverDia(this, 'abajo')">▼</button></div></div><div class="dia-contenido"><div class="dia-controls"><button class="action-btn" style="background:#34c759" onclick="addEvento('${id}', 'visita')">Visita</button><button class="action-btn" style="background:#ff9500" onclick="addEvento('${id}', 'comida')">Comida</button><button class="action-btn" style="background:#af52de" onclick="addEvento('${id}', 'cena')">Cena</button><button class="action-btn" style="background:#8e8e93" onclick="addEvento('${id}', 'salida')">Otro</button><button class="action-btn" style="background:#5ac8fa" onclick="recalcularDiaCompleto(this)">RECALC</button></div><div class="eventos-lista"></div></div></div>`;
+    document.getElementById('itinerario').insertAdjacentHTML('beforeend', html);
+    saveAll();
+}
+
+function addEvento(diaId, tipo) {
+    const lista=document.querySelector(`#$ {
+            diaId
+        }
+
+        .eventos-lista`);
+
+    const conf= {
+        visita: ['tipo-visita', 'VISITA'], comida: ['tipo-comida', 'COMIDA'], cena: ['tipo-cena', 'CENA'], salida: ['tipo-salida', 'OTRO']
+    }
+
+    ;
+    const [clase,
+    titulo]=conf[tipo];
+    let filasExtra=(tipo==='visita' || tipo==='comida') ? `<tr><td class="col-label">Duración</td><td colspan="2"><input type="text" placeholder="ej: 1h 30m" onblur="calcularSalida(this)" style="width:100%; border:none; background:transparent; text-align:right; font-weight:500; font-size:16px;"></td></tr><tr><td class="col-label">Salida</td><td colspan="2" style="text-align:right"><input type="time" onchange="recalcularSiguiente(this)"></td></tr>` : "";
+
+    const html=`<div class="bloque ${clase}"><div class="controls-left"><input type="checkbox" class="check-completar" onclick="toggleCompletado(this)"><button class="btn-ctrl" onclick="moveUp(this)">▲</button><button class="btn-ctrl" onclick="moveDown(this)">▼</button><button class="btn-ctrl" style="color:red" onclick="borrarEvento(this); saveAll();">✕</button></div><table oninput="saveAll()"><tbody><tr class="header-evento-color"><td colspan="2" contenteditable="true">$ {
+        titulo
+    }
+
+    </td><td style="text-align:right"><input type="time" onchange="saveAll()"></td></tr><tr><td class="col-label">Lugar</td><td contenteditable="true" class="col-data" onblur="calcularDistancia(this)">...</td><td style="text-align:right; width:25px;" class="btn-mapa" data-url="" onclick="gestionarMapa(this)">📍</td></tr><tr class="fila-trayecto"><td class="col-label">Trayecto</td><td colspan="2" class="col-data"></td></tr><tr><td class="col-label">Notas</td><td colspan="2" class="col-data"><div class="notas-container"></div><button class="action-btn" style="background:#8e8e93; width:60px; height:20px; font-size:10px; margin-top:4px;" onclick="addNota(this)">+NOTA</button></td></tr>$ {
+        filasExtra
+    }
+
+    </tbody></table></div>`;
+    lista.insertAdjacentHTML('beforeend', html);
+    saveAll();
+}
+
+function addNota(btn, texto="") {
+    const container=btn.previousElementSibling;
+
+    const html=`<div class="nota-item"><div class="nota-texto" contenteditable="true" onblur="linkify(this)">$ {
+        texto
+    }
+
+    </div><span class="btn-del-nota" onclick="this.parentElement.remove();saveAll();">✕</span></div>`;
+    container.insertAdjacentHTML('beforeend', html);
+    saveAll();
+}
+
+async function fetchClimaGlobal(el) {
+    const container=el.closest('.dia-container');
+    const nombre=container.querySelector('.nombre-dia-personalizado').innerText.trim();
+    const fechaStr=container.querySelector('h3').innerText.trim();
+    const wrapper=container.querySelector('.clima-wrapper');
+    if ( !nombre || nombre==="Destino...") return;
+
+    try {
+        const geo=await (await fetch(`https: //geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(nombre)}&count=1&language=es&format=json`)).json();
+
+                if (geo.results) {
+                    const {
+                        latitude, longitude
+                    }
+
+                    =geo.results[0];
+                    let url=`https: //api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&daily=weathercode,temperature_2m_max,temperature_2m_min&timezone=auto`;
+
+                    if (/^\d {
+                            4
+                        }
+
+                        -\d {
+                            2
+                        }
+
+                        -\d {
+                            2
+                        }
+
+                        $/.test(fechaStr)) url +=`&start_date=$ {
+                        fechaStr
+                    }
+
+                    &end_date=$ {
+                        fechaStr
+                    }
+
+                    `;
+                    const w=await (await fetch(url)).json();
+
+                    if (w.daily) wrapper.innerHTML=`<span class="clima-icon" >$ {
+                        weatherIcons[w.daily.weathercode[0]] || "🌡️"
+                    }
+
+                    </span><div class="temp-row" ><span style="color:#ff453a" >$ {
+                        Math.round(w.daily.temperature_2m_max[0])
+                    }
+
+                    °</span><span style="color:#0a84ff" >$ {
+                        Math.round(w.daily.temperature_2m_min[0])
+                    }
+
+                    °</span></div>`;
+                    saveAll();
+                }
+            }
+
+            catch (e) {
+                wrapper.innerHTML="Err";
+            }
+        }
+
+        async function calcularDistancia(elLugar) {
+            const bloqueActual=elLugar.closest('.bloque');
+            const bloqueAnterior=bloqueActual.previousElementSibling;
+            const filaTrayecto=bloqueActual.querySelector('.fila-trayecto .col-data');
+
+            if ( !bloqueAnterior) {
+                filaTrayecto.innerText="";
+                return;
+            }
+
+            const lugarActual=elLugar.innerText.trim();
+            const lugarAnterior=bloqueAnterior.querySelector('td[onblur="calcularDistancia(this)"]').innerText.trim();
+
+            if ( !lugarActual || !lugarAnterior) {
+                filaTrayecto.innerText="";
+                return;
+            }
+
+            const nombreDia=elLugar.closest('.dia-container').querySelector('.nombre-dia-personalizado').innerText.trim();
+
+            const contextoBusqueda=(nombreDia && nombreDia !=='Destino...') ? `, $ {
+                nombreDia
+            }
+
+            ` : '';
+
+            try {
+                filaTrayecto.innerText="Calculando...";
+                const geo1=await (await fetch(`https: //geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(lugarAnterior + contextoBusqueda)}&count=1&language=es`)).json();
+                        const geo2=await (await fetch(`https: //geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(lugarActual + contextoBusqueda)}&count=1&language=es`)).json();
+
+                                const {
+                                    longitude: lon1, latitude: lat1
+                                }
+
+                                =geo1.results[0];
+
+                                const {
+                                    longitude: lon2, latitude: lat2
+                                }
+
+                                =geo2.results[0];
+                                const route=await (await fetch(`https: //router.project-osrm.org/route/v1/driving/${lon1},${lat1};${lon2},${lat2}?overview=false`)).json();
+
+                                        const distancia=route.routes[0].distance; // en metros
+                                        const duracion=route.routes[0].duration; // en segundos
+
+                                        // Muestra la distancia
+                                        filaTrayecto.innerText=(distancia / 1000).toFixed(0) + " km";
+
+                                        // Calcula y ajusta la hora
+                                        const inputHoraSalidaAnterior=bloqueAnterior.querySelector('input[onchange="recalcularSiguiente(this)"]');
+                                        const horaSalidaAnterior=(inputHoraSalidaAnterior && inputHoraSalidaAnterior.value) ? inputHoraSalidaAnterior.value : bloqueAnterior.querySelector('.header-evento-color input[type="time"]')?.value;
+
+                                        if (horaSalidaAnterior) {
+                                            const [horas, minutos]=horaSalidaAnterior.split(':').map(Number);
+                                            const fechaSalida=new Date();
+                                            fechaSalida.setHours(horas, minutos, 0, 0);
+                                            fechaSalida.setSeconds(fechaSalida.getSeconds() + duracion);
+
+                                            const nuevaHoraLlegada=fechaSalida.toTimeString().slice(0, 5);
+                                            const inputHoraActual=bloqueActual.querySelector('.header-evento-color input[type="time"]');
+
+                                            if (inputHoraActual) {
+                                                inputHoraActual.value=nuevaHoraLlegada; calcularSalida(inputHoraActual);
+                                            }
+                                        }
+
+                                        saveAll();
+                                    }
+
+                                    catch (e) {
+                                        filaTrayecto.innerText="Error";
+                                    }
+                                }
+
+                                async function recalcularDiaCompleto(btn) {
+                                    const diaContainer=btn.closest('.dia-container');
+                                    if ( !diaContainer) return;
+
+                                    // Evita que se ejecute si ya está calculando
+                                    if (diaContainer.dataset.calculando==='true') return;
+
+                                    const lugares=diaContainer.querySelectorAll('.eventos-lista .bloque td[onblur="calcularDistancia(this)"]');
+
+                                    diaContainer.dataset.calculando='true';
+                                    btn.innerText='...';
+
+                                    try {
+                                        for (const lugar of lugares) {
+                                            await calcularDistancia(lugar);
+                                        }
+                                    }
+
+                                    finally {
+                                        delete diaContainer.dataset.calculando;
+                                        btn.innerText='RECALC';
+                                    }
+                                }
+
+                                function parseDuracion(str) {
+                                    if ( !str) return 0;
+                                    let totalMinutos=0;
+                                    const horasMatch=str.match(/(\d+)\s*h/);
+                                    const minMatch=str.match(/(\d+)\s*m/);
+                                    if (horasMatch) totalMinutos +=parseInt(horasMatch[1], 10) * 60;
+                                    if (minMatch) totalMinutos +=parseInt(minMatch[1], 10);
+                                    if ( !horasMatch && !minMatch && /^\d+$/.test(str)) totalMinutos=parseInt(str, 10);
+                                    return totalMinutos;
+                                }
+
+                                function calcularSalida(el) {
+                                    const bloque=el.closest('.bloque');
+                                    const inputLlegada=bloque.querySelector('.header-evento-color input[type="time"]');
+                                    const inputDuracion=bloque.querySelector('input[onblur="calcularSalida(this)"]');
+                                    const inputSalida=bloque.querySelector('input[onchange="recalcularSiguiente(this)"]');
+
+                                    if ( !inputLlegada || !inputLlegada.value || !inputDuracion || !inputSalida) return;
+
+                                    const duracionMinutos=parseDuracion(inputDuracion.value);
+                                    if (duracionMinutos===0) return;
+
+                                    const [horas, minutos]=inputLlegada.value.split(':').map(Number);
+                                    const fechaLlegada=new Date();
+                                    fechaLlegada.setHours(horas, minutos, 0, 0);
+                                    fechaLlegada.setMinutes(fechaLlegada.getMinutes() + duracionMinutos);
+
+                                    inputSalida.value=fechaLlegada.toTimeString().slice(0, 5);
+                                    recalcularSiguiente(inputSalida);
+                                    saveAll();
+                                }
+
+                                function recalcularSiguiente(elSalida) {
+                                    const bloqueActual=elSalida.closest('.bloque');
+                                    const bloqueSiguiente=bloqueActual.nextElementSibling;
+                                    const lugarSiguiente=bloqueSiguiente?.querySelector('td[onblur="calcularDistancia(this)"]');
+                                    if (lugarSiguiente) calcularDistancia(lugarSiguiente);
+                                    saveAll();
+                                }
+
+                                function gestionarMapa(el) {
+                                    let url=el.dataset.url || "";
+
+                                    if ( !url) {
+                                        let n=prompt("URL Maps:");
+
+                                        if (n) {
+                                            el.dataset.url=n; el.setAttribute('data-url', n); el.classList.add('con-url'); saveAll();
+                                        }
+                                    }
+
+                                    else {
+                                        if (confirm("¿Abrir?")) window.open(url, "_blank");
+
+                                        else {
+                                            let n=prompt("Editar:", url); if (n !==null) {
+                                                el.dataset.url=n; el.setAttribute('data-url', n); n==="" ? el.classList.remove('con-url') : el.classList.add('con-url'); saveAll();
+                                            }
+                                        }
+                                    }
+                                }
+
+                                function toggleDia(header) {
+                                    if ( !event.target.hasAttribute('contenteditable') && event.target.tagName !=='BUTTON') header.nextElementSibling.classList.toggle('abierto');
+                                }
+
+                                function toggleCompletado(check) {
+                                    check.closest('.bloque').classList.toggle('completado', check.checked); saveAll();
+                                }
+
+                                function moverDia(btn, dir) {
+                                    const dia=btn.closest('.dia-container'); dir==='arriba' ? dia.previousElementSibling?.before(dia) : dia.nextElementSibling?.after(dia); saveAll();
+                                }
+
+                                function moveUp(btn) {
+                                    const bloque=btn.closest('.bloque');
+                                    const bloqueSiguiente=bloque.nextElementSibling;
+
+                                    if (bloque.previousElementSibling) {
+                                        bloque.previousElementSibling.before(bloque);
+                                        recalcularDistanciasAfectadas(bloque, bloqueSiguiente);
+                                    }
+                                }
+
+                                function moveDown(btn) {
+                                    const bloque=btn.closest('.bloque');
+                                    const bloqueSiguiente=bloque.nextElementSibling;
+
+                                    if (bloqueSiguiente) {
+                                        bloqueSiguiente.after(bloque);
+                                        recalcularDistanciasAfectadas(bloque, bloqueSiguiente);
+                                    }
+                                }
+
+                                function limpiarTodo() {
+                                    if (confirm("¿Borrar?")) {
+                                        localStorage.clear(); location.reload();
+                                    }
+                                }
+
+                                function borrarEvento(btn) {
+                                    const bloque=btn.closest('.bloque');
+                                    const bloqueSiguiente=bloque.nextElementSibling;
+                                    bloque.remove(); // El saveAll se llama en el onclick del botón
+                                    const lugarSiguiente=bloqueSiguiente?.querySelector('td[onblur="calcularDistancia(this)"]');
+                                    if (lugarSiguiente) calcularDistancia(lugarSiguiente);
+                                    saveAll();
+                                }
+
+                                function actualizarEfectos() {
+                                    document.querySelectorAll('.check-completar').forEach(c=> c.checked=c.hasAttribute('checked'));
+                                    document.querySelectorAll('input[type="time"]').forEach(i=> i.value=i.getAttribute('value'));
+
+                                    document.querySelectorAll('.btn-mapa').forEach(pin=> {
+                                            if (pin.getAttribute('data-url')) pin.classList.add('con-url');
+                                        });
+                                    document.querySelectorAll('input[onblur="calcularSalida(this)"]').forEach(i=> i.value=i.getAttribute('value') || '');
+                                    actualizarEstructuraUI();
+                                }
+
+                                function actualizarEstructuraUI() {
+                                    document.querySelectorAll('.dia-container').forEach(dia=> {
+                                            const controls=dia.querySelector('.dia-controls');
+
+                                            if (controls && !controls.querySelector('button[onclick^="recalcularDiaCompleto"]')) {
+                                                const diaId=dia.id;
+                                                controls.style.gridTemplateColumns='repeat(5, 1fr)';
+                                                controls.insertAdjacentHTML('beforeend', `<button class="action-btn" style="background:#5ac8fa" onclick="recalcularDiaCompleto(this)" >RECALC</button>`);
+                                            }
+                                        });
+                                }
+
+                                function recalcularDistanciasAfectadas(bloqueMovido, bloqueAfectado) {
+                                    const lugarMovido=bloqueMovido.querySelector('td[onblur="calcularDistancia(this)"]');
+                                    const lugarAfectado=bloqueAfectado?.querySelector('td[onblur="calcularDistancia(this)"]');
+                                    if (lugarMovido) calcularDistancia(lugarMovido);
+                                    if (lugarAfectado) calcularDistancia(lugarAfectado);
+                                    saveAll();
+                                }
+
+                                </script> </body> </html>
