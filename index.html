@@ -376,8 +376,8 @@
                 <button class="action-btn" style="background:#34c759"
                     onclick="document.getElementById('import-file').click()">ABRIR</button>
                 <input type="file" id="import-file" style="display:none" accept=".json" onchange="importarDatos(this)">
-                <button id="sync-btn" class="action-btn" style="background:#5856d6"
-                    onclick="sincronizarGitHub()">SYNC</button>
+                <button id="sync-btn" class="action-btn" style="background:#5856d6" onclick="abrirDesdeGitHub()">ABRIR
+                    GH</button>
                 <button class="action-btn" style="background:#1c1c1e" onclick="addDia()">+ DÍA</button>
             </div>
         </div>
@@ -446,17 +446,40 @@
             input.value = "";
         }
 
-        async function sincronizarGitHub() {
-            const nombreArchivo = prompt("Nombre del archivo en GitHub (sin .json):", "itinerario_viaje");
-            if (!nombreArchivo) return;
-            const URL_DINAMICA = `https://raw.githubusercontent.com/antoniodetm/mi-viaje/main/${nombreArchivo}.json`;
+        async function abrirDesdeGitHub() {
+            const githubUser = prompt("Usuario/Organización de GitHub:", "antoniodetm");
+            if (!githubUser) return;
+            const repoName = prompt("Nombre del repositorio:", "mi-viaje");
+            if (!repoName) return;
+            const branch = prompt("Rama (branch):", "main");
+            if (!branch) return;
+            const filePath = prompt("Ruta al archivo JSON dentro del repositorio (ej: itinerarios/paris.json):", "itinerario_viaje.json");
+            if (!filePath) return;
+
+            const rawGitHubUrl = `https://raw.githubusercontent.com/${githubUser}/${repoName}/${branch}/${filePath}`;
+            const proxyUrl = `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(rawGitHubUrl)}&t=${Date.now()}`;
+
             try {
-                const resp = await fetch(`https://api.codetabs.com/v1/proxy?quest=${URL_DINAMICA}&t=${Date.now()}`);
-                if (!resp.ok) throw new Error();
+                const resp = await fetch(proxyUrl);
+                if (!resp.ok) {
+                    if (resp.status === 404) {
+                        throw new Error("Archivo no encontrado (404). Revisa la ruta, usuario, repositorio y rama.");
+                    }
+                    throw new Error(`Error al cargar el archivo: ${resp.status} ${resp.statusText}`);
+                }
                 const d = await resp.json();
-                if (confirm(`¿Sincronizar "${nombreArchivo}"?`)) cargarJSON(d);
-            } catch (e) { alert("Error: No se encontró el archivo."); }
+                if (confirm(`¿Cargar "${filePath}" de GitHub? Esto sobrescribirá el itinerario actual.`)) {
+                    cargarJSON(d);
+                }
+            } catch (e) {
+                console.error("Error al abrir desde GitHub:", e);
+                alert(`Error: ${e.message || "No se pudo cargar el archivo desde GitHub."}`);
+            }
         }
+
+        // Nota importante: Guardar directamente en GitHub desde el navegador es complejo y no se implementa por seguridad.
+        // Para guardar tus viajes en GitHub, usa el botón "GUARDAR" para descargar el JSON localmente,
+        // y luego súbelo manualmente a tu repositorio de GitHub.
 
         function addDia() {
             let fecha = new Date().toISOString().split('T')[0];
