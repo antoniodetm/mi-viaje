@@ -179,6 +179,10 @@
             filter: grayscale(1);
         }
 
+        .bloque.contraido table tbody tr:not(.header-evento-color) {
+            display: none;
+        }
+
         .bloque.tipo-visita {
             background-color: #e8f5e9;
         }
@@ -240,6 +244,7 @@
             color: white;
             padding: 6px;
             font-size: 15px;
+            cursor: pointer;
         }
 
         .tipo-visita .header-evento-color {
@@ -537,7 +542,7 @@
                 <button class="btn-ctrl" style="color:red" onclick="borrarEvento(this); saveAll();">✕</button>
             </div>
             <table oninput="saveAll()">
-                <tbody><tr class="header-evento-color"><td colspan="2" contenteditable="true">${titulo}</td><td style="text-align:right"><input type="time" onchange="saveAll()"></td></tr>
+                <tbody><tr class="header-evento-color" onclick="toggleEvento(this)"><td colspan="2" contenteditable="true" onclick="event.stopPropagation()">${titulo}</td><td style="text-align:right"><input type="time" onchange="saveAll()" onclick="event.stopPropagation()"></td></tr>
                 <tr><td class="col-label">Lugar</td><td contenteditable="true" class="col-data" onblur="calcularDistancia(this)">...</td><td style="text-align:right; width:25px;" class="btn-mapa" data-url="" onclick="gestionarMapa(this)">📍</td></tr>
                 <tr class="fila-trayecto"><td class="col-label">Trayecto</td><td colspan="2" class="col-data"></td></tr>
                 <tr><td class="col-label">Notas</td><td colspan="2" class="col-data">
@@ -705,6 +710,14 @@
             }
         }
 
+        function toggleEvento(headerRow) {
+            // Evita que se contraiga si el clic fue en un elemento editable
+            if (event.target.hasAttribute('contenteditable') || event.target.tagName === 'INPUT') {
+                return;
+            }
+            headerRow.closest('.bloque').classList.toggle('contraido');
+            saveAll();
+        }
         function toggleDia(header) { if (!event.target.hasAttribute('contenteditable') && event.target.tagName !== 'BUTTON') header.nextElementSibling.classList.toggle('abierto'); }
         function toggleCompletado(check) { check.closest('.bloque').classList.toggle('completado', check.checked); saveAll(); }
         function moverDia(btn, dir) { const dia = btn.closest('.dia-container'); dir === 'arriba' ? dia.previousElementSibling?.before(dia) : dia.nextElementSibling?.after(dia); saveAll(); }
