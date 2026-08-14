@@ -369,6 +369,16 @@
             width: 85px;
         }
 
+        .btn-toggle-evento {
+            background: transparent;
+            border: none;
+            color: white;
+            font-size: 18px;
+            cursor: pointer;
+            padding: 0 5px;
+            vertical-align: middle;
+        }
+
         .header-evento-color input[type="time"] {
             color: white;
         }
@@ -415,6 +425,7 @@
         function saveAll() {
             document.querySelectorAll('input[type="time"]').forEach(i => i.setAttribute('value', i.value));
             document.querySelectorAll('input[type="checkbox"]').forEach(i => i.checked ? i.setAttribute('checked', 'checked') : i.removeAttribute('checked'));
+            document.querySelectorAll('input[onblur="calcularSalida(this)"]').forEach(i => i.setAttribute('value', i.value));
             localStorage.setItem('miItinerario', document.getElementById('itinerario').innerHTML);
             localStorage.setItem('tituloViaje', document.getElementById('titulo-viaje').innerText);
         }
@@ -548,7 +559,7 @@
                 <button class="btn-ctrl" style="color:red" onclick="borrarEvento(this); saveAll();">✕</button>
             </div>
             <table oninput="saveAll()">
-                <tbody><tr class="header-evento-color" onclick="toggleEvento(this)"><td colspan="2" contenteditable="true" onclick="event.stopPropagation()">${titulo}</td><td style="text-align:right"><input type="time" onchange="saveAll()" onclick="event.stopPropagation()"></td></tr>
+                <tbody><tr class="header-evento-color" onclick="toggleEvento(this)"><td colspan="2" contenteditable="true" onclick="event.stopPropagation()">${titulo}</td><td style="text-align:right"><input type="time" onchange="saveAll()" onclick="event.stopPropagation()"><button class="btn-toggle-evento" onclick="event.stopPropagation(); toggleEvento(this.closest('tr'));">▼</button></td></tr>
                 <tr><td class="col-label">Lugar</td><td contenteditable="true" class="col-data" onblur="calcularDistancia(this)">...</td><td style="text-align:right; width:25px;" class="btn-mapa" data-url="" onclick="gestionarMapa(this)">📍</td></tr>
                 <tr class="fila-trayecto"><td class="col-label">Trayecto</td><td colspan="2" class="col-data"></td></tr>
                 <tr><td class="col-label">Notas</td><td colspan="2" class="col-data">
@@ -768,6 +779,16 @@
                     const diaId = dia.id;
                     controls.style.gridTemplateColumns = 'repeat(5, 1fr)';
                     controls.insertAdjacentHTML('beforeend', `<button class="action-btn" style="background:#5ac8fa" onclick="recalcularDiaCompleto(this)">RECALC</button>`);
+                }
+            });
+
+            // Añade el botón de toggle si no existe en eventos antiguos
+            document.querySelectorAll('.header-evento-color').forEach(header => {
+                if (!header.querySelector('.btn-toggle-evento')) {
+                    const timeCell = header.querySelector('td[style="text-align:right"]');
+                    if (timeCell) {
+                        timeCell.insertAdjacentHTML('beforeend', `<button class="btn-toggle-evento" onclick="event.stopPropagation(); toggleEvento(this.closest('tr'));">▼</button>`);
+                    }
                 }
             });
         }
