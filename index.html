@@ -487,7 +487,13 @@
                 }
             } catch (e) {
                 console.error("Error al abrir desde GitHub:", e);
-                alert(`Error: ${e.message || "No se pudo cargar el archivo desde GitHub."}`);
+                let errorMessage = e.message || "No se pudo cargar el archivo desde GitHub.";
+                if (errorMessage === "Failed to fetch") {
+                    errorMessage += "\n\nPosibles causas:\n- Problemas de conexión a internet.\n- El servicio proxy (allorigins.win) está caído o bloqueado.\n- Extensiones del navegador (ej. ad-blockers) interfiriendo.\n- El archivo JSON no existe o la URL es incorrecta.";
+                } else if (e instanceof SyntaxError && e.message.includes("JSON")) {
+                    errorMessage = "Error al procesar el archivo JSON. Asegúrate de que el contenido sea un JSON válido.";
+                }
+                alert(`Error: ${errorMessage}`);
             }
         }
 
