@@ -383,6 +383,26 @@
             color: white;
         }
     </style>
+    <!-- SDK de Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
+    <script>
+        // Configuración de tu proyecto de Firebase
+        // REEMPLAZA ESTO con la configuración real de tu proyecto desde la consola de Firebase
+        const firebaseConfig = {
+            apiKey: "TU_API_KEY", // Reemplaza con tu API Key
+            authDomain: "rutas-e051f.firebaseapp.com",
+            databaseURL: "https://rutas-e051f-default-rtdb.europe-west1.firebasedatabase.app", // Asegúrate que la URL es correcta
+            projectId: "rutas-e051f",
+            storageBucket: "rutas-e051f.appspot.com",
+            messagingSenderId: "263100723365",
+            appId: "1:263100723365:web:2e97eec355c1cd9518dd4c"
+        };
+
+        // Inicializar Firebase
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+    </script>
 </head>
 
 <body>
@@ -393,12 +413,12 @@
 
         <div class="main-nav">
             <div class="nav-row-quad">
-                <button class="action-btn" style="background:#007aff" onclick="exportarDatos()">GUARDAR</button>
+                <button class="action-btn" style="background:#007aff" onclick="guardarEnFirebase()">SUBIR FB</button>
                 <button class="action-btn" style="background:#34c759"
                     onclick="document.getElementById('import-file').click()">ABRIR</button>
                 <input type="file" id="import-file" style="display:none" accept=".json" onchange="importarDatos(this)">
-                <button id="sync-btn" class="action-btn" style="background:#5856d6" onclick="abrirDesdeGitHub()">ABRIR
-                    GH</button>
+                <button id="sync-btn" class="action-btn" style="background:#5856d6"
+                    onclick="cargarDesdeFirebase()">CARGAR FB</button>
                 <button class="action-btn" style="background:#1c1c1e" onclick="addDia()">+ DÍA</button>
             </div>
         </div>
@@ -407,12 +427,16 @@
         <button class="action-btn"
             style="background:#ff3b30; width: 100%; margin-top: 5px; min-height: 25px; font-size: 10px;"
             onclick="limpiarTodo()">BORRAR TODO</button>
+        <button class="action-btn"
+            style="background:#8e8e93; width: 100%; margin-top: 2px; min-height: 25px; font-size: 10px;"
+            onclick="exportarDatos()">GUARDAR JSON</button>
     </div>
 
     <script>
         const weatherIcons = { 0: "☀️", 1: "🌤️", 2: "⛅", 3: "☁️", 45: "🌫️", 48: "🌫️", 51: "🌦️", 53: "🌦️", 55: "🌦️", 61: "🌧️", 63: "🌧️", 65: "🌧️", 71: "❄️", 73: "❄️", 75: "❄️", 77: "🌨️", 80: "🌦️", 81: "🌧️", 82: "🌧️", 95: "⛈️", 96: "⛈️", 99: "⛈️" };
 
         window.onload = () => {
+            // Carga desde el almacenamiento local al iniciar
             const saved = localStorage.getItem('miItinerario');
             const savedTitle = localStorage.getItem('tituloViaje');
             if (savedTitle) document.getElementById('titulo-viaje').innerText = savedTitle;
@@ -430,6 +454,36 @@
             localStorage.setItem('tituloViaje', document.getElementById('titulo-viaje').innerText);
         }
 
+        function guardarEnFirebase() {
+            saveAll(); // Primero guarda el estado actual en el DOM
+            const itinerarioId = prompt("Introduce un nombre para guardar el itinerario en la nube:", document.getElementById('titulo-viaje').innerText.trim().toLowerCase().replace(/\s+/g, '-'));
+            if (!itinerarioId) return;
+
+            const datos = {
+                titulo: document.getElementById('titulo-viaje').innerText,
+                cuerpo: document.getElementById('itinerario').innerHTML
+            };
+
+            database.ref('itinerarios/' + itinerarioId).set(datos)
+                .then(() => alert('¡Itinerario guardado en Firebase con éxito!'))
+                .catch(error => alert('Error al guardar en Firebase: ' + error.message));
+        }
+
+        async function cargarDesdeFirebase() {
+            const itinerarioId = prompt("Introduce el nombre del itinerario a cargar desde la nube:");
+            if (!itinerarioId) return false;
+
+            const snapshot = await database.ref('itinerarios/' + itinerarioId).get();
+            if (snapshot.exists()) {
+                if (confirm(`¿Cargar '${itinerarioId}' desde Firebase? Se sobrescribirá el itinerario actual.`)) {
+                    cargarJSON(snapshot.val());
+                    return true;
+                }
+                return false; // El usuario canceló la confirmación
+            }
+            alert("No se encontró un itinerario con ese nombre en Firebase.");
+            return false;
+        }
         function linkify(el) {
             // Obtenemos solo el texto para evitar duplicar enlaces ya creados
             let text = el.innerText;
