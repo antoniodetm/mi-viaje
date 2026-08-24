@@ -312,7 +312,7 @@
         .col-label {
             width: 1px;
             white-space: nowrap;
-            font-size: 12px;
+            font-size: 16px;
             font-weight: 700;
             color: rgba(0, 0, 0, 0.5);
             text-transform: uppercase;
@@ -715,8 +715,8 @@
             const conf = { visita: ['tipo-visita', 'VISITA'], comida: ['tipo-comida', 'COMIDA'], cena: ['tipo-cena', 'CENA'], salida: ['tipo-salida', 'OTRO'] };
             const [clase, titulo] = conf[tipo];
             let filasExtra = (tipo === 'visita' || tipo === 'comida') ?
-                `<tr><td class="col-label">Duración</td><td colspan="2"><input type="text" placeholder="ej: 1h 30m" onblur="calcularSalida(this)" style="width:100%; border:none; background:transparent; text-align:right; font-weight:500; font-size:16px;"></td></tr>
-                 <tr><td class="col-label">Salida</td><td colspan="2" style="text-align:right"><input type="time" onchange="recalcularSiguiente(this)"></td></tr>` : "";
+                `<tr><td class="col-label">⏳</td><td colspan="2"><input type="text" placeholder="ej: 1h 30m" onblur="calcularSalida(this)" style="width:100%; border:none; background:transparent; text-align:right; font-weight:500; font-size:16px;"></td></tr>
+                 <tr><td class="col-label">🏁</td><td colspan="2" style="text-align:right"><input type="time" onchange="recalcularSiguiente(this)"></td></tr>` : "";
 
             const html = `<div class="bloque ${clase}">
             <div class="controls-left">
@@ -730,9 +730,9 @@
             </div>
             <table oninput="saveAll()">
                 <tbody><tr class="header-evento-color" onclick="toggleEvento(this)"><td colspan="2" onclick="event.stopPropagation()"><span contenteditable="true">${titulo}</span><span class="tiempo-libre"></span></td><td style="text-align:right"><button class="btn-toggle-evento" onclick="event.stopPropagation(); toggleEvento(this.closest('tr'));">▼</button></td></tr>
-                <tr><td class="col-label">Lugar</td><td contenteditable="true" class="col-data" onblur="calcularDistancia(this)">...</td><td style="text-align:right; width:25px;" class="btn-mapa" data-url="" onclick="gestionarMapa(this)">📍</td></tr>
-                <tr class="fila-trayecto"><td class="col-label">Trayecto</td><td colspan="2" class="col-data"></td></tr>
-                <tr><td class="col-label">Notas</td><td colspan="2" class="col-data">
+                <tr><td class="col-label">📍</td><td contenteditable="true" class="col-data" onblur="calcularDistancia(this)">...</td><td style="text-align:right; width:25px;" class="btn-mapa" data-url="" onclick="gestionarMapa(this)">📍</td></tr>
+                <tr class="fila-trayecto"><td class="col-label">🚗</td><td colspan="2" class="col-data"></td></tr>
+                <tr><td class="col-label">📝</td><td colspan="2" class="col-data">
                     <div class="notas-container"></div>
                     <button class="action-btn" style="background:#8e8e93; width:60px; height:20px; font-size:10px; margin-top:4px;" onclick="addNota(this)">+ NOTA</button>
                 </td></tr>
@@ -792,19 +792,40 @@
                 return;
             }
 
+            // Obtener el contexto del destino (ciudad) del día para búsquedas precisas en calles
+            const nombreDia = elLugar.closest('.dia-container').querySelector('.nombre-dia-personalizado').innerText.trim();
+            const contexto = (nombreDia && nombreDia !== 'Destino...') ? `, ${nombreDia}` : '';
+
             try {
                 filaTrayecto.innerText = "Calculando...";
-                const geo1 = await (await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(lugarAnterior)}&count=1&language=es&country_bias=es,fr,pt`)).json();
-                const geo2 = await (await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(lugarActual)}&count=1&language=es&country_bias=es,fr,pt`)).json();
-                const { longitude: lon1, latitude: lat1 } = geo1.results[0];
-                const { longitude: lon2, latitude: lat2 } = geo2.results[0];
-                const route = await (await fetch(`https://router.project-osrm.org/route/v1/driving/${lon1},${lat1};${lon2},${lat2}?overview=false`)).json();
+
+                const geocode = async (query) => {
+                    // Usamos Nominatim (OpenStreetMap) para permitir búsqueda por calles
+                    const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query + contexto)}&format=json&limit=1`;
+                    const resp = await fetch(url);
+                    const data = await resp.json();
+                    if (data && data.length > 0) {
+                        return { lat: data[0].lat, lon: data[0].lon };
+                    }
+                    // Intento de respaldo sin contexto por si el lugar ya incluye la ciudad o está fuera
+                    const resp2 = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=1`);
+                    const data2 = await resp2.json();
+                    if (data2 && data2.length > 0) return { lat: data2[0].lat, lon: data2[0].lon };
+                    throw new Error("No encontrado");
+                };
+
+                const pos1 = await geocode(lugarAnterior);
+                const pos2 = await geocode(lugarActual);
+
+                const route = await (await fetch(`https://router.project-osrm.org/route/v1/driving/${pos1.lon},${pos1.lat};${pos2.lon},${pos2.lat}?overview=false`)).json();
+
+                if (!route.routes || route.routes.length === 0) throw new Error("Sin ruta");
 
                 const distancia = route.routes[0].distance; // en metros
                 const duracion = route.routes[0].duration; // en segundos
 
-                // Muestra la distancia
-                filaTrayecto.innerText = (distancia / 1000).toFixed(0) + " km";
+                // Muestra la distancia (en metros si es menos de 1km para precisión en calles)
+                filaTrayecto.innerText = distancia < 1000 ? Math.round(distancia) + " m" : (distancia / 1000).toFixed(1) + " km";
 
                 // Calcula y ajusta la hora
                 const inputHoraSalidaAnterior = bloqueAnterior.querySelector('input[onchange="recalcularSiguiente(this)"]');
@@ -982,6 +1003,16 @@
         }
 
         function actualizarEstructuraUI() {
+            // Reemplazar textos por iconos en etiquetas de columna (Migración)
+            document.querySelectorAll('.col-label').forEach(label => {
+                const text = label.innerText.trim().toLowerCase();
+                if (text === 'lugar') label.innerText = '📍';
+                else if (text === 'trayecto') label.innerText = '🚗';
+                else if (text === 'notas') label.innerText = '📝';
+                else if (text === 'duración') label.innerText = '⏳';
+                else if (text === 'salida') label.innerText = '🏁';
+            });
+
             // Asegurar el tag de coste total al final si no existe
             if (!document.getElementById('total-gastos-viaje')) {
                 const container = document.querySelector('.container');
