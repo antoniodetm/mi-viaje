@@ -1,0 +1,1178 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Imprimir Itinerario de Viaje (Firebase)</title>
+    <!-- SDK de Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
+    <style>
+        :root {
+            --primary: #007aff;
+            --primary-dark: #0056b3;
+            --bg-page: #f2f2f7;
+            --surface: #ffffff;
+            --text: #1c1c1e;
+            --text-muted: #6c6c70;
+            --border: #d1d1d6;
+            --border-light: #e5e5ea;
+
+            /* Colores de categorías */
+            --color-visita-bg: #e8f5e9;
+            --color-visita-border: #81c784;
+            --color-visita-header: #2e7d32;
+            --color-visita-badge: #e8f5e9;
+            --color-visita-badge-text: #1b5e20;
+
+            --color-comida-bg: #fff3e0;
+            --color-comida-border: #ffb74d;
+            --color-comida-header: #e65100;
+            --color-comida-badge: #fff3e0;
+            --color-comida-badge-text: #b23c00;
+
+            --color-cena-bg: #f3e5f5;
+            --color-cena-border: #ba68c8;
+            --color-cena-header: #6a1b9a;
+            --color-cena-badge: #f3e5f5;
+            --color-cena-badge-text: #4a148c;
+
+            --color-salida-bg: #f5f5f7;
+            --color-salida-border: #c7c7cc;
+            --color-salida-header: #48484a;
+            --color-salida-badge: #f0f0f2;
+            --color-salida-badge-text: #38383a;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-page);
+            color: var(--text);
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+
+        /* BARRA SUPERIOR DE HERRAMIENTAS (PANTALLA) */
+        .toolbar {
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--border);
+            padding: 12px 20px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+        }
+
+        .toolbar-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 14px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            border: 1px solid transparent;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            background: #e5e5ea;
+            color: #1c1c1e;
+        }
+
+        .btn:hover {
+            opacity: 0.88;
+            transform: translateY(-1px);
+        }
+
+        .btn-primary {
+            background: #007aff;
+            color: white;
+            box-shadow: 0 2px 8px rgba(0, 122, 255, 0.35);
+        }
+
+        .btn-purple {
+            background: #5856d6;
+            color: white;
+        }
+
+        .toolbar-select,
+        .toolbar-checkbox {
+            font-size: 13px;
+            color: var(--text);
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            cursor: pointer;
+        }
+
+        select.custom-select {
+            padding: 6px 10px;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+            background: white;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text);
+            outline: none;
+            cursor: pointer;
+        }
+
+        .firebase-badge {
+            background: #fff0d4;
+            color: #b25e00;
+            border: 1px solid #ffe0a3;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 700;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        /* CONTENEDOR DEL DOCUMENTO DE IMPRESIÓN */
+        .print-wrapper {
+            max-width: 900px;
+            margin: 20px auto 40px auto;
+            background: var(--surface);
+            padding: 35px 40px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        }
+
+        /* ENCABEZADO DEL DOCUMENTO */
+        .doc-header {
+            border-bottom: 2px solid #1c1c1e;
+            padding-bottom: 15px;
+            margin-bottom: 25px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+        }
+
+        .doc-title-wrapper {
+            flex: 1;
+        }
+
+        .doc-title {
+            margin: 0 0 6px 0;
+            font-size: 28px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            color: #111;
+        }
+
+        .doc-subtitle {
+            margin: 0;
+            font-size: 14px;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+
+        .doc-meta {
+            text-align: right;
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .doc-meta .badge-stat {
+            display: inline-block;
+            background: #eef1f5;
+            color: #333;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-weight: 600;
+            margin-top: 4px;
+        }
+
+        .doc-meta .badge-cost {
+            display: inline-block;
+            background: #e8f5e9;
+            color: #2e7d32;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-weight: 700;
+            margin-top: 4px;
+            border: 1px solid #c8e6c9;
+        }
+
+        /* CONTENIDO DE LOS DÍAS */
+        .dias-container {
+            display: flex;
+            flex-direction: column;
+            gap: 22px;
+        }
+
+        .dia-card {
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            overflow: hidden;
+            background: white;
+            page-break-inside: avoid;
+            break-inside: avoid;
+        }
+
+        .dia-header {
+            background: #1c1c1e;
+            color: white;
+            padding: 10px 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+        }
+
+        .dia-title-group {
+            display: flex;
+            align-items: baseline;
+            gap: 12px;
+        }
+
+        .dia-num {
+            font-size: 14px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #a1a1a6;
+        }
+
+        .dia-destino {
+            font-size: 20px;
+            font-weight: 800;
+            color: #ffffff;
+        }
+
+        .dia-fecha {
+            font-size: 14px;
+            font-weight: 500;
+            color: #e5e5ea;
+        }
+
+        .dia-clima {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 14px;
+            font-weight: 700;
+            background: rgba(255, 255, 255, 0.15);
+            padding: 4px 10px;
+            border-radius: 20px;
+        }
+
+        .dia-coste-header {
+            font-size: 16px;
+            font-weight: 800;
+            background: #34c759;
+            color: white;
+            padding: 2px 10px;
+            border-radius: 12px;
+            margin-left: 10px;
+        }
+
+        /* TABLA DE EVENTOS / CRONOGRAMA */
+        .tabla-eventos {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13.5px;
+        }
+
+        .tabla-eventos thead th {
+            background: #f8f9fa;
+            color: #48484a;
+            font-weight: 700;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            text-align: left;
+            padding: 8px 12px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .tabla-eventos tbody tr {
+            border-bottom: 1px solid var(--border-light);
+            page-break-inside: avoid;
+            break-inside: avoid;
+        }
+
+        .tabla-eventos tbody tr:last-child {
+            border-bottom: none;
+        }
+
+        .tabla-eventos td {
+            padding: 9px 12px;
+            vertical-align: top;
+        }
+
+        /* COLUMNAS */
+        .col-check {
+            width: 32px;
+            text-align: center;
+            padding-right: 0 !important;
+        }
+
+        .print-checkbox {
+            width: 15px;
+            height: 15px;
+            border: 1.5px solid #636366;
+            border-radius: 3px;
+            display: inline-block;
+            vertical-align: middle;
+            background: white;
+        }
+
+        .col-horario {
+            width: 120px;
+            white-space: nowrap;
+        }
+
+        .hora-principal {
+            font-size: 15px;
+            font-weight: 800;
+            color: #111;
+        }
+
+        .hora-salida-tag {
+            font-size: 11.5px;
+            color: var(--text-muted);
+            margin-top: 2px;
+            font-weight: 500;
+        }
+
+        .duracion-tag {
+            display: inline-block;
+            font-size: 10.5px;
+            background: #f2f2f7;
+            color: #555;
+            padding: 1px 5px;
+            border-radius: 4px;
+            margin-top: 2px;
+        }
+
+        .col-categoria {
+            min-width: 110px;
+            max-width: 160px;
+        }
+
+        .badge-tipo {
+            display: inline-block;
+            font-size: 11.5px;
+            font-weight: 800;
+            line-height: 1.25;
+            letter-spacing: 0.2px;
+            padding: 4px 8px;
+            border-radius: 5px;
+            text-align: left;
+            word-break: break-word;
+            border: 1px solid transparent;
+        }
+
+        .badge-visita {
+            background-color: var(--color-visita-badge);
+            color: var(--color-visita-badge-text);
+            border-color: var(--color-visita-border);
+        }
+
+        .badge-comida {
+            background-color: var(--color-comida-badge);
+            color: var(--color-comida-badge-text);
+            border-color: var(--color-comida-border);
+        }
+
+        .badge-cena {
+            background-color: var(--color-cena-badge);
+            color: var(--color-cena-badge-text);
+            border-color: var(--color-cena-border);
+        }
+
+        .badge-salida,
+        .badge-otro {
+            background-color: var(--color-salida-badge);
+            color: var(--color-salida-badge-text);
+            border-color: var(--color-salida-border);
+        }
+
+        .col-actividad {
+            min-width: 170px;
+        }
+
+        .lugar-nombre {
+            font-size: 14.5px;
+            font-weight: 800;
+            color: #111;
+            margin-bottom: 2px;
+        }
+
+        .trayecto-info {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 11.5px;
+            font-weight: 600;
+            color: #007aff;
+            background: #e5f2ff;
+            padding: 1px 6px;
+            border-radius: 4px;
+            margin-top: 2px;
+        }
+
+        .col-detalles {
+            color: #333;
+        }
+
+        .nota-linea {
+            font-size: 12.5px;
+            line-height: 1.4;
+            margin-bottom: 4px;
+            color: #2c2c2e;
+            word-break: break-word;
+        }
+
+        .nota-linea a {
+            color: #0066cc;
+            text-decoration: underline;
+            word-break: break-all;
+        }
+
+        .map-link-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 3px;
+            font-size: 11px;
+            font-weight: 600;
+            color: #d9381e;
+            text-decoration: none;
+            background: #fdf0ee;
+            padding: 2px 6px;
+            border-radius: 4px;
+            margin-top: 3px;
+            border: 1px solid #ffd2cc;
+        }
+
+        /* PIE DE PÁGINA */
+        .doc-footer {
+            margin-top: 30px;
+            padding-top: 12px;
+            border-top: 1px dashed var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+
+        /* MODOS DE VISUALIZACIÓN / CONFIGURACIÓN */
+        body.font-compact .tabla-eventos {
+            font-size: 12px;
+        }
+
+        body.font-compact .tabla-eventos td,
+        body.font-compact .tabla-eventos thead th {
+            padding: 6px 9px;
+        }
+
+        body.font-compact .lugar-nombre {
+            font-size: 13px;
+        }
+
+        body.font-compact .hora-principal {
+            font-size: 13px;
+        }
+
+        body.font-large .tabla-eventos {
+            font-size: 15px;
+        }
+
+        body.hide-notes .col-detalles,
+        body.hide-notes th:nth-child(5) {
+            display: none;
+        }
+
+        body.hide-weather .dia-clima {
+            display: none;
+        }
+
+        body.hide-checkboxes .col-check,
+        body.hide-checkboxes th:nth-child(1) {
+            display: none;
+        }
+
+        body.monochrome .badge-tipo {
+            background: #f2f2f2 !important;
+            color: #000 !important;
+            border: 1px solid #999 !important;
+        }
+
+        body.monochrome .dia-header {
+            background: #333 !important;
+        }
+
+        body.monochrome .trayecto-info {
+            background: #eee !important;
+            color: #333 !important;
+        }
+
+        /* SALTO DE PÁGINA POR DÍA */
+        body.page-break-days .dia-card:not(:last-child) {
+            page-break-after: always;
+            break-after: page;
+        }
+
+        /* FORMATO DE 2 COLUMNAS (CUADRÍCULA COMPACTA) */
+        body.layout-grid .dias-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        /* AJUSTES PARA IMPRESIÓN FÍSICA / PDF */
+        @media print {
+            @page {
+                size: A4 portrait;
+                margin: 10mm 10mm 12mm 10mm;
+            }
+
+            body {
+                background: white !important;
+                color: black !important;
+            }
+
+            .toolbar {
+                display: none !important;
+            }
+
+            .print-wrapper {
+                max-width: 100% !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                box-shadow: none !important;
+                border-radius: 0 !important;
+            }
+
+            .dia-card {
+                border: 1px solid #b0b0b0 !important;
+            }
+
+            .dia-header {
+                background-color: #222 !important;
+                color: #fff !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+
+            .badge-visita {
+                background-color: #e8f5e9 !important;
+                color: #1b5e20 !important;
+            }
+
+            .badge-comida {
+                background-color: #fff3e0 !important;
+                color: #b23c00 !important;
+            }
+
+            .badge-cena {
+                background-color: #f3e5f5 !important;
+                color: #4a148c !important;
+            }
+
+            .badge-salida,
+            .badge-otro {
+                background-color: #f0f0f2 !important;
+                color: #222 !important;
+            }
+
+            .tabla-eventos tbody tr {
+                border-bottom: 1px solid #dcdcdc !important;
+            }
+
+            a {
+                text-decoration: none !important;
+                color: inherit !important;
+            }
+
+            .map-link-btn {
+                border: 1px solid #ccc !important;
+                background: #f9f9f9 !important;
+                color: #333 !important;
+            }
+        }
+
+        /* ESTADO DE CARGA Y VACÍO */
+        .status-box {
+            text-align: center;
+            padding: 50px 20px;
+            background: #fafafa;
+            border: 2px dashed var(--border);
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+
+        .status-box h3 {
+            margin: 0 0 8px 0;
+            color: #333;
+        }
+
+        .status-box p {
+            margin: 0 0 16px 0;
+            color: #666;
+            font-size: 14px;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 32px;
+            height: 32px;
+            border: 4px solid rgba(0, 122, 255, 0.2);
+            border-radius: 50%;
+            border-top-color: #007aff;
+            animation: spin 0.8s linear infinite;
+            margin-bottom: 12px;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- BARRA SUPERIOR DE CONTROL (NO SE IMPRIME) -->
+    <div class="toolbar">
+        <div class="toolbar-group">
+            <button class="btn btn-primary" onclick="window.print()" title="Imprimir o exportar como PDF (Ctrl+P)">
+                <span>🖨️</span> <strong>Imprimir / PDF</strong>
+            </button>
+
+            <!-- SELECTOR DE ITINERARIOS EN FIREBASE -->
+            <label class="toolbar-select">
+                <span class="firebase-badge">🔥 Firebase:</span>
+                <select id="select-itinerario-firebase" class="custom-select"
+                    onchange="seleccionarItinerarioFirebase(this.value)">
+                    <option value="">Cargando itinerarios...</option>
+                </select>
+            </label>
+
+            <button class="btn btn-purple" onclick="cargarListaDesdeFirebase()" title="Refrescar lista desde Firebase">
+                <span>🔄</span> Actualizar
+            </button>
+
+            <button class="btn" onclick="cargarManualFirebase()"
+                title="Escribir el nombre exacto de un itinerario en Firebase">
+                <span>🔍</span> Buscar por ID
+            </button>
+        </div>
+
+        <div class="toolbar-group">
+            <label class="toolbar-select">
+                <span>Formato:</span>
+                <select id="select-layout" class="custom-select" onchange="cambiarFormato(this.value)">
+                    <option value="list">1 Columna (Estándar)</option>
+                    <option value="grid">2 Columnas (Ahorro papel)</option>
+                </select>
+            </label>
+
+            <label class="toolbar-select">
+                <span>Tamaño:</span>
+                <select id="select-fontsize" class="custom-select" onchange="cambiarTamanoTexto(this.value)">
+                    <option value="normal">Normal</option>
+                    <option value="compact">Compacto</option>
+                    <option value="large">Grande</option>
+                </select>
+            </label>
+
+            <label class="toolbar-checkbox" title="Cada día comenzará en una página nueva al imprimir">
+                <input type="checkbox" id="chk-pagebreak" onchange="toggleOpcion('page-break-days', this.checked)">
+                <span>1 Día / Página</span>
+            </label>
+
+            <label class="toolbar-checkbox" title="Imprimir en escala de grises para ahorrar tinta de color">
+                <input type="checkbox" id="chk-mono" onchange="toggleOpcion('monochrome', this.checked)">
+                <span>Ahorro tinta</span>
+            </label>
+
+            <label class="toolbar-checkbox">
+                <input type="checkbox" id="chk-notes" checked onchange="toggleOpcion('hide-notes', !this.checked)">
+                <span>Notas</span>
+            </label>
+
+            <label class="toolbar-checkbox">
+                <input type="checkbox" id="chk-check" checked onchange="toggleOpcion('hide-checkboxes', !this.checked)">
+                <span>Casillas [ ]</span>
+            </label>
+        </div>
+    </div>
+
+    <!-- DOCUMENTO LISTO PARA IMPRIMIR -->
+    <div class="print-wrapper">
+        <header class="doc-header">
+            <div class="doc-title-wrapper">
+                <h1 id="doc-titulo" class="doc-title">Mi Itinerario de Viaje</h1>
+                <p id="doc-subtitulo" class="doc-subtitle">Itinerario sincronizado desde Firebase</p>
+            </div>
+            <div class="doc-meta">
+                <div id="doc-fecha-emision">Generado: -</div>
+                <div id="doc-resumen-dias" class="badge-stat">0 días | 0 paradas</div>
+            </div>
+        </header>
+
+        <!-- CONTENEDOR DE TODOS LOS DÍAS -->
+        <main id="dias-lista" class="dias-container">
+            <div class="status-box">
+                <div class="spinner"></div>
+                <h3>Conectando con Firebase...</h3>
+                <p>Descargando los itinerarios almacenados en la base de datos.</p>
+            </div>
+        </main>
+
+        <footer class="doc-footer">
+            <span id="footer-itinerario-id">Itinerario Firebase</span>
+            <span id="footer-date"></span>
+        </footer>
+    </div>
+
+    <!-- SCRIPT DE LÓGICA Y PARSEO DESDE FIREBASE -->
+    <script>
+        // Configuración oficial de Firebase del proyecto
+        const firebaseConfig = {
+            apiKey: "TU_API_KEY",
+            authDomain: "rutas-e051f.firebaseapp.com",
+            databaseURL: "https://rutas-e051f-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "rutas-e051f",
+            storageBucket: "rutas-e051f.appspot.com",
+            messagingSenderId: "263100723365",
+            appId: "1:263100723365:web:2e97eec355c1cd9518dd4c"
+        };
+
+        let database = null;
+        let itinerariosCargados = {};
+
+        try {
+            firebase.initializeApp(firebaseConfig);
+            database = firebase.database();
+        } catch (e) {
+            console.error("Error al inicializar Firebase:", e);
+        }
+
+        // Al cargar la página
+        window.addEventListener('DOMContentLoaded', () => {
+            const today = new Date();
+            const dateStr = today.toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' });
+            document.getElementById('doc-fecha-emision').innerText = `Impreso: ${dateStr}`;
+            document.getElementById('footer-date').innerText = dateStr;
+
+            // Descargar itinerarios de Firebase
+            cargarListaDesdeFirebase();
+        });
+
+        // Descarga todos los itinerarios disponibles en Firebase
+        async function cargarListaDesdeFirebase() {
+            if (!database) {
+                mostrarError("No se pudo inicializar la conexión con Firebase.");
+                return;
+            }
+
+            const selectEl = document.getElementById('select-itinerario-firebase');
+            selectEl.innerHTML = '<option value="">Cargando desde Firebase...</option>';
+
+            document.getElementById('dias-lista').innerHTML = `
+                <div class="status-box">
+                    <div class="spinner"></div>
+                    <h3>Descargando datos de Firebase...</h3>
+                    <p>Obteniendo los itinerarios guardados en la nube.</p>
+                </div>
+            `;
+
+            try {
+                const snapshot = await database.ref('itinerarios').get();
+                if (!snapshot.exists()) {
+                    selectEl.innerHTML = '<option value="">(Sin itinerarios en Firebase)</option>';
+                    mostrarError("No hay itinerarios guardados en la base de datos de Firebase.");
+                    return;
+                }
+
+                itinerariosCargados = snapshot.val();
+                const keys = Object.keys(itinerariosCargados);
+
+                if (keys.length === 0) {
+                    selectEl.innerHTML = '<option value="">(Sin itinerarios en Firebase)</option>';
+                    mostrarError("La base de datos de Firebase no contiene itinerarios.");
+                    return;
+                }
+
+                selectEl.innerHTML = '';
+                keys.forEach(key => {
+                    const item = itinerariosCargados[key];
+                    const opt = document.createElement('option');
+                    opt.value = key;
+                    opt.textContent = `${item.titulo || key} (${key})`;
+                    selectEl.appendChild(opt);
+                });
+
+                // Seleccionar y renderizar el primero por defecto
+                const primerId = keys[0];
+                selectEl.value = primerId;
+                seleccionarItinerarioFirebase(primerId);
+
+            } catch (err) {
+                console.error("Error Firebase:", err);
+                selectEl.innerHTML = '<option value="">Error al cargar</option>';
+                mostrarError(`Error al conectar con Firebase: ${err.message}`);
+            }
+        }
+
+        // Seleccionar un itinerario del dropdown
+        function seleccionarItinerarioFirebase(id) {
+            if (!id || !itinerariosCargados[id]) return;
+            const data = itinerariosCargados[id];
+            document.getElementById('footer-itinerario-id').innerText = `Itinerario Firebase: ${id}`;
+            procesarYRenderizar(data.titulo || id, data.cuerpo || '');
+        }
+
+        // Buscar un itinerario por ID manual
+        async function cargarManualFirebase() {
+            const id = prompt("Introduce el nombre/ID del itinerario guardado en Firebase:");
+            if (!id) return;
+
+            const cleanId = id.trim();
+            if (itinerariosCargados[cleanId]) {
+                document.getElementById('select-itinerario-firebase').value = cleanId;
+                seleccionarItinerarioFirebase(cleanId);
+                return;
+            }
+
+            try {
+                const snapshot = await database.ref('itinerarios/' + cleanId).get();
+                if (snapshot.exists()) {
+                    const data = snapshot.val();
+                    itinerariosCargados[cleanId] = data;
+
+                    // Añadir al selector
+                    const selectEl = document.getElementById('select-itinerario-firebase');
+                    const opt = document.createElement('option');
+                    opt.value = cleanId;
+                    opt.textContent = `${data.titulo || cleanId} (${cleanId})`;
+                    selectEl.appendChild(opt);
+                    selectEl.value = cleanId;
+
+                    seleccionarItinerarioFirebase(cleanId);
+                } else {
+                    alert(`No se encontró el itinerario "${cleanId}" en Firebase.`);
+                }
+            } catch (err) {
+                alert(`Error al buscar en Firebase: ${err.message}`);
+            }
+        }
+
+        // Función para parsear y renderizar el contenido HTML guardado en Firebase
+        function procesarYRenderizar(titulo, htmlCuerpo) {
+            if (!htmlCuerpo || htmlCuerpo.trim() === '') {
+                mostrarError("El itinerario seleccionado en Firebase no tiene contenido.");
+                return;
+            }
+
+            document.getElementById('doc-titulo').innerText = titulo || "Mi Itinerario";
+            document.title = `${titulo || "Itinerario"} - Imprimir (Firebase)`;
+
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(`<div>${htmlCuerpo}</div>`, 'text/html');
+            const diaContainers = doc.querySelectorAll('.dia-container');
+
+            if (diaContainers.length === 0) {
+                mostrarError("No se encontraron días o paradas en este itinerario de Firebase.");
+                return;
+            }
+
+            const diasListaEl = document.getElementById('dias-lista');
+            diasListaEl.innerHTML = '';
+
+            let totalParadas = 0;
+            let totalDias = diaContainers.length;
+            let totalCosteViaje = 0;
+
+            diaContainers.forEach((diaEl, index) => {
+                // Extraer datos del día
+                const fechaEl = diaEl.querySelector('.header-info-wrapper h3');
+                const destinoEl = diaEl.querySelector('.nombre-dia-personalizado');
+                const climaEl = diaEl.querySelector('.clima-wrapper');
+
+                const fecha = fechaEl ? fechaEl.innerText.trim() : '';
+                const destino = destinoEl ? destinoEl.innerText.trim() : `Día ${index + 1}`;
+                const clima = climaEl ? climaEl.innerHTML.trim() : '';
+
+                // Extraer eventos del día
+                const bloques = diaEl.querySelectorAll('.eventos-lista .bloque');
+                totalParadas += bloques.length;
+
+                const eventosData = [];
+
+                bloques.forEach(bloque => {
+                    // Tipo
+                    let tipo = 'otro';
+                    if (bloque.classList.contains('tipo-visita')) tipo = 'visita';
+                    else if (bloque.classList.contains('tipo-comida')) tipo = 'comida';
+                    else if (bloque.classList.contains('tipo-cena')) tipo = 'cena';
+                    else if (bloque.classList.contains('tipo-salida')) tipo = 'salida';
+
+                    // Hora de llegada
+                    const timeInput = bloque.querySelector('.time-sidebar input[type="time"]') || bloque.querySelector('.header-evento-color input[type="time"]');
+                    const horaLlegada = timeInput ? (timeInput.getAttribute('value') || timeInput.value || '') : '';
+
+                    // Nombre / Título del evento
+                    const headerTd = bloque.querySelector('.header-evento-color td');
+                    let tituloEvento = '';
+                    if (headerTd) {
+                        const tempTd = headerTd.cloneNode(true);
+                        tempTd.querySelectorAll('button, input').forEach(el => el.remove());
+                        tituloEvento = tempTd.innerText.trim();
+                    }
+                    if (!tituloEvento) tituloEvento = tipo.toUpperCase();
+
+                    // Filas de datos
+                    let lugar = '';
+                    let mapaUrl = '';
+                    let trayecto = '';
+                    let notas = []; // Array de objetos {texto, coste}
+                    let duracion = '';
+                    let horaSalida = '';
+
+                    const filas = bloque.querySelectorAll('table tbody tr');
+                    filas.forEach(fila => {
+                        const colLabel = fila.querySelector('.col-label');
+                        const labelText = colLabel ? colLabel.innerText.trim().toLowerCase() : '';
+
+                        if (labelText.includes('lugar')) {
+                            const dataCol = fila.querySelector('.col-data');
+                            if (dataCol) lugar = dataCol.innerText.trim();
+                            const btnMapa = fila.querySelector('.btn-mapa');
+                            if (btnMapa && btnMapa.getAttribute('data-url')) {
+                                mapaUrl = btnMapa.getAttribute('data-url');
+                            }
+                        } else if (labelText.includes('trayecto')) {
+                            const dataCol = fila.querySelector('.col-data');
+                            if (dataCol) trayecto = dataCol.innerText.trim();
+                        } else if (labelText.includes('duración') || labelText.includes('duracion')) {
+                            const inputDur = fila.querySelector('input');
+                            if (inputDur) duracion = inputDur.getAttribute('value') || inputDur.value || '';
+                        } else if (labelText.includes('salida')) {
+                            const inputSal = fila.querySelector('input[type="time"]');
+                            if (inputSal) horaSalida = inputSal.getAttribute('value') || inputSal.value || '';
+                        } else if (labelText.includes('nota')) {
+                            const notasCont = fila.querySelector('.notas-container');
+                            if (notasCont) {
+                                const notaItems = notasCont.querySelectorAll('.nota-item');
+                                notaItems.forEach(item => {
+                                    const tEl = item.querySelector('.nota-texto');
+                                    const cEl = item.querySelector('.nota-coste');
+                                    const t = tEl ? tEl.innerHTML.trim() : '';
+                                    const c = cEl ? parseFloat(cEl.getAttribute('value') || cEl.value || 0) : 0;
+                                    if (t || c > 0) notas.push({ texto: t, coste: c });
+                                });
+                            } else {
+                                const dataCol = fila.querySelector('.col-data');
+                                if (dataCol) {
+                                    const t = dataCol.innerHTML.trim();
+                                    if (t) notas.push({ texto: t, coste: 0 });
+                                }
+                            }
+                        }
+                    });
+
+                    // Calcular coste del evento
+                    let costeEvento = 0;
+                    notas.forEach(n => costeEvento += n.coste);
+                    totalCosteDia += costeEvento;
+
+                    if (!lugar && tituloEvento) {
+                        lugar = tituloEvento;
+                    }
+
+                    eventosData.push({
+                        tipo,
+                        tituloEvento,
+                        horaLlegada,
+                        lugar,
+                        mapaUrl,
+                        trayecto,
+                        duracion,
+                        horaSalida,
+                        notas,
+                        costeEvento
+                    });
+                });
+
+                totalCosteViaje += totalCosteDia;
+
+                // Construir la tarjeta del día
+                const diaCard = document.createElement('section');
+                diaCard.className = 'dia-card';
+
+                let climaHtml = '';
+                if (clima) {
+                    climaHtml = `<div class="dia-clima">${clima}</div>`;
+                }
+
+                let tablaEventosHtml = '';
+                if (eventosData.length > 0) {
+                    const filasHtml = eventosData.map(ev => {
+                        let horarioHtml = `<div class="hora-principal">${ev.horaLlegada || '--:--'}</div>`;
+                        if (ev.horaSalida && ev.horaSalida !== ev.horaLlegada) {
+                            horarioHtml += `<div class="hora-salida-tag">Salida: ${ev.horaSalida}</div>`;
+                        }
+                        if (ev.duracion) {
+                            horarioHtml += `<div class="duracion-tag">⏱️ ${ev.duracion}</div>`;
+                        }
+
+                        let badgeClass = `badge-${ev.tipo}`;
+                        let badgeLabel = ev.tituloEvento || ev.tipo.toUpperCase();
+
+                        let trayectoHtml = '';
+                        if (ev.trayecto && ev.trayecto !== '0 km') {
+                            trayectoHtml = `<div class="trayecto-info">🚗 ${ev.trayecto}</div>`;
+                        }
+
+                        let notasHtml = '';
+                        if (ev.notas.length > 0) {
+                            notasHtml = ev.notas.map(n => `<div class="nota-linea">• ${n.texto} ${n.coste > 0 ? `<b style="color:#2e7d32; margin-left:5px;">(${n.coste.toFixed(2)} €)</b>` : ''}</div>`).join('');
+                        }
+
+                        let mapaHtml = '';
+                        if (ev.mapaUrl) {
+                            mapaHtml = `<a href="${ev.mapaUrl}" target="_blank" class="map-link-btn">📍 Mapa</a>`;
+                        }
+
+                        return `
+                            <tr>
+                                <td class="col-check">
+                                    <span class="print-checkbox"></span>
+                                </td>
+                                <td class="col-horario">
+                                    ${horarioHtml}
+                                </td>
+                                <td class="col-categoria">
+                                    <span class="badge-tipo ${badgeClass}">${badgeLabel}</span>
+                                    ${ev.costeEvento > 0 ? `<div style="font-size:10px; color:#2e7d32; font-weight:bold; margin-top:2px;">Total: ${ev.costeEvento.toFixed(2)}€</div>` : ''}
+                                </td>
+                                <td class="col-actividad">
+                                    <div class="lugar-nombre">${ev.lugar}</div>
+                                    ${trayectoHtml}
+                                    ${mapaHtml}
+                                </td>
+                                <td class="col-detalles">
+                                    ${notasHtml || '<span style="color:#aaa;">-</span>'}
+                                </td>
+                            </tr>
+                        `;
+                    }).join('');
+
+                    tablaEventosHtml = `
+                        <table class="tabla-eventos">
+                            <thead>
+                                <tr>
+                                    <th class="col-check"></th>
+                                    <th>Horario</th>
+                                    <th>Tipo</th>
+                                    <th>Lugar / Parada</th>
+                                    <th>Notas y Detalles</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${filasHtml}
+                            </tbody>
+                        </table>
+                    `;
+                } else {
+                    tablaEventosHtml = `<div style="padding: 15px; color: #888; text-align: center;">Sin actividades programadas para este día</div>`;
+                }
+
+                diaCard.innerHTML = `
+                    <div class="dia-header">
+                        <div class="dia-title-group">
+                            <span class="dia-num">Día ${index + 1}</span>
+                            <span class="dia-destino">${destino}</span>
+                            <span class="dia-fecha">${fecha ? `(${fecha})` : ''}</span>
+                        </div>
+                        <div style="display:flex; align-items:center;">
+                            ${totalCosteDia > 0 ? `<span class="dia-coste-header">${totalCosteDia.toFixed(2)} €</span>` : ''}
+                            ${climaHtml}
+                        </div>
+                    </div>
+                    ${tablaEventosHtml}
+                `;
+
+                diasListaEl.appendChild(diaCard);
+            });
+
+            // Actualizar resumen
+            document.getElementById('doc-resumen-dias').innerText = `${totalDias} ${totalDias === 1 ? 'día' : 'días'} | ${totalParadas} paradas`;
+
+            // Añadir o actualizar badge de coste total
+            let badgeCoste = document.querySelector('.badge-cost');
+            if (!badgeCoste) {
+                badgeCoste = document.createElement('div');
+                badgeCoste.className = 'badge-cost';
+                document.querySelector('.doc-meta').appendChild(badgeCoste);
+            }
+            badgeCoste.innerText = `Presupuesto: ${totalCosteViaje.toFixed(2)} €`;
+        }
+
+        function mostrarError(mensaje) {
+            document.getElementById('dias-lista').innerHTML = `
+                <div class="status-box">
+                    <h3>Atención</h3>
+                    <p>${mensaje}</p>
+                    <button class="btn btn-purple" onclick="cargarListaDesdeFirebase()">🔄 Reintentar conexión con Firebase</button>
+                </div>
+            `;
+            document.getElementById('doc-resumen-dias').innerText = '0 días | 0 paradas';
+        }
+
+        // Controladores de opciones de vista
+        function cambiarFormato(layout) {
+            if (layout === 'grid') {
+                document.body.classList.add('layout-grid');
+            } else {
+                document.body.classList.remove('layout-grid');
+            }
+        }
+
+        function cambiarTamanoTexto(size) {
+            document.body.classList.remove('font-compact', 'font-large');
+            if (size === 'compact') {
+                document.body.classList.add('font-compact');
+            } else if (size === 'large') {
+                document.body.classList.add('font-large');
+            }
+        }
+
+        function toggleOpcion(className, enable) {
+            if (enable) {
+                document.body.classList.add(className);
+            } else {
+                document.body.classList.remove(className);
+            }
+        }
+    </script>
+</body>
+
+</html>

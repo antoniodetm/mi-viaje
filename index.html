@@ -169,7 +169,7 @@
             margin: 4px 2px;
             border-radius: 8px;
             position: relative;
-            padding-left: 32px;
+            padding-left: 82px;
             overflow: hidden;
             border: 1px solid rgba(0, 0, 0, 0.1);
         }
@@ -211,6 +211,52 @@
             border-right: 1px solid rgba(0, 0, 0, 0.05);
             background: rgba(0, 0, 0, 0.03);
             z-index: 10;
+        }
+
+        .time-sidebar {
+            position: absolute;
+            left: 32px;
+            top: 0;
+            width: 50px;
+            height: 31px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0, 0, 0, 0.1);
+            border-right: 1px solid rgba(0, 0, 0, 0.05);
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+            z-index: 9;
+        }
+
+        .time-sidebar input[type="time"] {
+            width: 100%;
+            border: none;
+            background: transparent;
+            font-family: inherit;
+            font-size: 14px;
+            font-weight: 900;
+            text-align: center;
+            color: #1c1c1e;
+            padding: 0;
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        .time-sidebar input[type="time"]::-webkit-calendar-picker-indicator {
+            display: none;
+            -webkit-appearance: none;
+        }
+
+        .tiempo-libre {
+            font-size: 11px;
+            font-weight: 700;
+            margin-left: 8px;
+            padding: 2px 4px;
+            border-radius: 4px;
+            background: rgba(255, 255, 255, 0.3);
+            color: white;
+            display: inline-block;
+            vertical-align: middle;
         }
 
         .btn-ctrl {
@@ -359,6 +405,50 @@
             padding: 0 4px;
         }
 
+        .nota-coste {
+            width: 40px;
+            border: 1px solid #d1d1d6;
+            border-radius: 4px;
+            font-size: 13px;
+            padding: 1px 3px;
+            text-align: right;
+            font-family: inherit;
+            -moz-appearance: textfield;
+        }
+
+        .nota-coste::-webkit-outer-spin-button,
+        .nota-coste::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        .euro-symbol {
+            font-size: 13px;
+            color: #8e8e93;
+            margin-right: 4px;
+        }
+
+        .dia-coste-tag {
+            background: #34c759;
+            color: white;
+            padding: 2px 6px;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 800;
+            margin-right: 8px;
+        }
+
+        .total-viaje-tag {
+            background: #ff9500;
+            color: white;
+            padding: 4px 10px;
+            border-radius: 15px;
+            font-size: 18px;
+            font-weight: 900;
+            margin-bottom: 10px;
+            display: inline-block;
+        }
+
         input[type="time"] {
             border: none;
             font-family: inherit;
@@ -367,6 +457,12 @@
             background: transparent;
             color: inherit;
             width: 85px;
+            -webkit-appearance: none;
+        }
+
+        input[type="time"]::-webkit-calendar-picker-indicator {
+            display: none;
+            -webkit-appearance: none;
         }
 
         .btn-toggle-evento {
@@ -377,10 +473,6 @@
             cursor: pointer;
             padding: 0 5px;
             vertical-align: middle;
-        }
-
-        .header-evento-color input[type="time"] {
-            color: white;
         }
     </style>
     <!-- SDK de Firebase -->
@@ -430,6 +522,9 @@
         <button class="action-btn"
             style="background:#8e8e93; width: 100%; margin-top: 2px; min-height: 25px; font-size: 10px;"
             onclick="exportarDatos()">GUARDAR JSON</button>
+        <div id="total-gastos-viaje"
+            style="text-align: center; margin-top: 10px; font-weight: 900; font-size: 18px; color: #1c1c1e; padding: 10px; border-top: 2px solid #d1d1d6;">
+            TOTAL GASTOS: 0.00 €</div>
     </div>
 
     <script>
@@ -450,8 +545,26 @@
             document.querySelectorAll('input[type="time"]').forEach(i => i.setAttribute('value', i.value));
             document.querySelectorAll('input[type="checkbox"]').forEach(i => i.checked ? i.setAttribute('checked', 'checked') : i.removeAttribute('checked'));
             document.querySelectorAll('input[onblur="calcularSalida(this)"]').forEach(i => i.setAttribute('value', i.value));
+            document.querySelectorAll('.nota-coste').forEach(i => i.setAttribute('value', i.value));
             localStorage.setItem('miItinerario', document.getElementById('itinerario').innerHTML);
             localStorage.setItem('tituloViaje', document.getElementById('titulo-viaje').innerText);
+        }
+
+        function actualizarCostes() {
+            let totalViaje = 0;
+            document.querySelectorAll('.nota-coste').forEach(input => {
+                totalViaje += parseFloat(input.value) || 0;
+            });
+            const footerTotal = document.getElementById('total-gastos-viaje');
+            if (footerTotal) footerTotal.innerText = "TOTAL GASTOS: " + totalViaje.toFixed(2) + " €";
+            saveAll();
+        }
+
+        function actualizarCita(input) {
+            saveAll();
+            const bloque = input.closest('.bloque');
+            const elLugar = bloque.querySelector('td[onblur="calcularDistancia(this)"]');
+            if (elLugar) calcularDistancia(elLugar);
         }
 
         function guardarEnFirebase() {
@@ -578,7 +691,7 @@
                 <div class="clima-wrapper"></div>
                 <div class="dia-management-block">
                     <button class="btn-dia-order" onclick="event.stopPropagation(); moverDia(this, 'arriba')">▲</button>
-                    <span class="btn-dia-delete" onclick="event.stopPropagation(); if(confirm('¿Borrar?')){this.closest('.dia-container').remove();saveAll();}">✕</span>
+                    <span class="btn-dia-delete" onclick="event.stopPropagation(); if(confirm('¿Borrar?')){this.closest('.dia-container').remove();actualizarCostes();}">✕</span>
                     <button class="btn-dia-order" onclick="event.stopPropagation(); moverDia(this, 'abajo')">▼</button>
                 </div>
             </div>
@@ -612,8 +725,11 @@
                 <button class="btn-ctrl" onclick="moveDown(this)">▼</button>
                 <button class="btn-ctrl" style="color:red" onclick="borrarEvento(this); saveAll();">✕</button>
             </div>
+            <div class="time-sidebar">
+                <input type="time" onchange="actualizarCita(this)" onclick="event.stopPropagation()">
+            </div>
             <table oninput="saveAll()">
-                <tbody><tr class="header-evento-color" onclick="toggleEvento(this)"><td colspan="2" contenteditable="true" onclick="event.stopPropagation()">${titulo}</td><td style="text-align:right"><input type="time" onchange="saveAll()" onclick="event.stopPropagation()"><button class="btn-toggle-evento" onclick="event.stopPropagation(); toggleEvento(this.closest('tr'));">▼</button></td></tr>
+                <tbody><tr class="header-evento-color" onclick="toggleEvento(this)"><td colspan="2" onclick="event.stopPropagation()"><span contenteditable="true">${titulo}</span><span class="tiempo-libre"></span></td><td style="text-align:right"><button class="btn-toggle-evento" onclick="event.stopPropagation(); toggleEvento(this.closest('tr'));">▼</button></td></tr>
                 <tr><td class="col-label">Lugar</td><td contenteditable="true" class="col-data" onblur="calcularDistancia(this)">...</td><td style="text-align:right; width:25px;" class="btn-mapa" data-url="" onclick="gestionarMapa(this)">📍</td></tr>
                 <tr class="fila-trayecto"><td class="col-label">Trayecto</td><td colspan="2" class="col-data"></td></tr>
                 <tr><td class="col-label">Notas</td><td colspan="2" class="col-data">
@@ -627,14 +743,16 @@
             saveAll();
         }
 
-        function addNota(btn, texto = "") {
+        function addNota(btn, texto = "", coste = "") {
             const container = btn.previousElementSibling;
             const html = `<div class="nota-item">
             <div class="nota-texto" contenteditable="true" onblur="linkify(this)">${texto}</div>
-            <span class="btn-del-nota" onclick="this.parentElement.remove();saveAll();">✕</span>
+            <input type="number" class="nota-coste" step="0.01" placeholder="0" value="${coste}" oninput="actualizarCostes()" max="999">
+            <span class="euro-symbol">€</span>
+            <span class="btn-del-nota" onclick="this.parentElement.remove();actualizarCostes();">✕</span>
         </div>`;
             container.insertAdjacentHTML('beforeend', html);
-            saveAll();
+            actualizarCostes();
         }
 
         async function fetchClimaGlobal(el) {
@@ -690,7 +808,7 @@
 
                 // Calcula y ajusta la hora
                 const inputHoraSalidaAnterior = bloqueAnterior.querySelector('input[onchange="recalcularSiguiente(this)"]');
-                const horaSalidaAnterior = (inputHoraSalidaAnterior && inputHoraSalidaAnterior.value) ? inputHoraSalidaAnterior.value : bloqueAnterior.querySelector('.header-evento-color input[type="time"]')?.value;
+                const horaSalidaAnterior = (inputHoraSalidaAnterior && inputHoraSalidaAnterior.value) ? inputHoraSalidaAnterior.value : bloqueAnterior.querySelector('.time-sidebar input[type="time"]')?.value;
 
                 if (horaSalidaAnterior) {
                     const [horas, minutos] = horaSalidaAnterior.split(':').map(Number);
@@ -698,9 +816,46 @@
                     fechaSalida.setHours(horas, minutos, 0, 0);
                     fechaSalida.setSeconds(fechaSalida.getSeconds() + duracion);
 
+                    const llegadaEstimadaMs = fechaSalida.getTime();
                     const nuevaHoraLlegada = fechaSalida.toTimeString().slice(0, 5);
-                    const inputHoraActual = bloqueActual.querySelector('.header-evento-color input[type="time"]');
-                    if (inputHoraActual) { inputHoraActual.value = nuevaHoraLlegada; calcularSalida(inputHoraActual); }
+                    const inputHoraActual = bloqueActual.querySelector('.time-sidebar input[type="time"]');
+                    const spanTiempoLibre = bloqueActual.querySelector('.tiempo-libre');
+
+                    // Guardamos la llegada estimada para cálculos aunque no haya cita
+                    bloqueActual.dataset.llegadaEstimada = nuevaHoraLlegada;
+
+                    if (inputHoraActual) {
+                        // Si no hay cita puesta, podemos sugerir la estimada o dejarlo vacío
+                        // Por ahora mantendremos el autocompletado si está vacío para no romper la cadena
+                        if (!inputHoraActual.value) {
+                            inputHoraActual.value = nuevaHoraLlegada;
+                        }
+
+                        // Calcular tiempo libre comparando minutos totales
+                        if (inputHoraActual.value && spanTiempoLibre) {
+                            const [hCita, mCita] = inputHoraActual.value.split(':').map(Number);
+                            const fechaCita = new Date(fechaSalida);
+                            fechaCita.setHours(hCita, mCita, 0, 0);
+
+                            const minsLlegada = Math.floor(fechaSalida.getTime() / 60000);
+                            const minsCita = Math.floor(fechaCita.getTime() / 60000);
+                            const diffMins = minsCita - minsLlegada;
+
+                            if (diffMins > 0) {
+                                const h = Math.floor(diffMins / 60);
+                                const m = diffMins % 60;
+                                spanTiempoLibre.innerText = `(Libre: ${h > 0 ? h + 'h ' : ''}${m}m)`;
+                                spanTiempoLibre.style.background = "#34c759"; // Verde para libre
+                            } else if (diffMins < 0) {
+                                spanTiempoLibre.innerText = `(Retraso: ${Math.abs(diffMins)}m)`;
+                                spanTiempoLibre.style.background = "#ff3b30"; // Rojo para retraso
+                            } else {
+                                spanTiempoLibre.innerText = "";
+                            }
+                        }
+
+                        calcularSalida(inputHoraActual);
+                    }
                 }
 
                 saveAll();
@@ -742,7 +897,7 @@
 
         function calcularSalida(el) {
             const bloque = el.closest('.bloque');
-            const inputLlegada = bloque.querySelector('.header-evento-color input[type="time"]');
+            const inputLlegada = bloque.querySelector('.time-sidebar input[type="time"]');
             const inputDuracion = bloque.querySelector('input[onblur="calcularSalida(this)"]');
             const inputSalida = bloque.querySelector('input[onchange="recalcularSiguiente(this)"]');
 
@@ -827,12 +982,61 @@
         }
 
         function actualizarEstructuraUI() {
+            // Asegurar el tag de coste total al final si no existe
+            if (!document.getElementById('total-gastos-viaje')) {
+                const container = document.querySelector('.container');
+                container.insertAdjacentHTML('beforeend', '<div id="total-gastos-viaje" style="text-align: center; margin-top: 10px; font-weight: 900; font-size: 18px; color: #1c1c1e; padding: 10px; border-top: 2px solid #d1d1d6;">TOTAL GASTOS: 0.00 €</div>');
+            }
+
             document.querySelectorAll('.dia-container').forEach(dia => {
                 const controls = dia.querySelector('.dia-controls');
                 if (controls && !controls.querySelector('button[onclick^="recalcularDiaCompleto"]')) {
                     const diaId = dia.id;
                     controls.style.gridTemplateColumns = 'repeat(5, 1fr)';
                     controls.insertAdjacentHTML('beforeend', `<button class="action-btn" style="background:#5ac8fa" onclick="recalcularDiaCompleto(this)">RECALC</button>`);
+                }
+
+                // Eliminar tag de coste al día si existe
+                const tag = dia.querySelector('.dia-coste-tag');
+                if (tag) tag.remove();
+                const flexCont = dia.querySelector('.dia-coste-flex-cont');
+                if (flexCont) {
+                    const h3 = flexCont.querySelector('h3');
+                    if (h3) flexCont.before(h3);
+                    flexCont.remove();
+                }
+            });
+
+            // Migración de notas (asegurar campo coste y onclick)
+            document.querySelectorAll('.nota-item').forEach(nota => {
+                if (!nota.querySelector('.nota-coste')) {
+                    const delBtn = nota.querySelector('.btn-del-nota');
+                    const htmlCoste = `<input type="number" class="nota-coste" step="0.01" placeholder="0" oninput="actualizarCostes()" max="999"><span class="euro-symbol">€</span>`;
+                    if (delBtn) {
+                        delBtn.insertAdjacentHTML('beforebegin', htmlCoste);
+                        delBtn.setAttribute('onclick', 'this.parentElement.remove();actualizarCostes();');
+                    }
+                }
+            });
+
+            // Migración del cajón del tiempo
+            document.querySelectorAll('.bloque').forEach(bloque => {
+                if (!bloque.querySelector('.time-sidebar')) {
+                    const headerInput = bloque.querySelector('.header-evento-color input[type="time"]');
+                    const sidebar = document.createElement('div');
+                    sidebar.className = 'time-sidebar';
+                    if (headerInput) {
+                        sidebar.appendChild(headerInput);
+                        headerInput.setAttribute('onchange', 'actualizarCita(this)');
+                    } else {
+                        sidebar.innerHTML = '<input type="time" onchange="actualizarCita(this)" onclick="event.stopPropagation()">';
+                    }
+                    const controlsLeft = bloque.querySelector('.controls-left');
+                    if (controlsLeft) {
+                        controlsLeft.after(sidebar);
+                    } else {
+                        bloque.prepend(sidebar);
+                    }
                 }
             });
 
@@ -844,7 +1048,18 @@
                         timeCell.insertAdjacentHTML('beforeend', `<button class="btn-toggle-evento" onclick="event.stopPropagation(); toggleEvento(this.closest('tr'));">▼</button>`);
                     }
                 }
+
+                // Asegurar span de tiempo libre y estructura de título
+                const tdTitulo = header.querySelector('td[colspan="2"]');
+                if (tdTitulo && !tdTitulo.querySelector('.tiempo-libre')) {
+                    const textoActual = tdTitulo.innerText;
+                    tdTitulo.innerHTML = `<span contenteditable="true">${textoActual}</span><span class="tiempo-libre"></span>`;
+                    tdTitulo.removeAttribute('contenteditable');
+                    tdTitulo.onclick = (e) => e.stopPropagation();
+                }
             });
+
+            actualizarCostes();
         }
 
         function recalcularDistanciasAfectadas(bloqueMovido, bloqueAfectado) {
