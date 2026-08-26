@@ -936,7 +936,12 @@
 
                     // Hora de llegada
                     const timeInput = bloque.querySelector('.time-sidebar input[type="time"]') || bloque.querySelector('.header-evento-color input[type="time"]');
-                    const horaLlegada = timeInput ? (timeInput.getAttribute('value') || timeInput.value || '') : '';
+                    let horaLlegada = timeInput ? (timeInput.getAttribute('value') || timeInput.value || '') : '';
+
+                    // Si no hay hora fija, usar la estimada del dataset si existe
+                    if (!horaLlegada && bloque.dataset.llegadaEstimada) {
+                        horaLlegada = bloque.dataset.llegadaEstimada;
+                    }
 
                     // Nombre / Título del evento
                     const headerTd = bloque.querySelector('.header-evento-color td');

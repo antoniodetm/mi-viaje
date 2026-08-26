@@ -247,6 +247,13 @@
             -webkit-appearance: none;
         }
 
+        .llegada-estimada-sidebar {
+            font-size: 14px;
+            font-weight: 900;
+            color: #8e8e93;
+            cursor: pointer;
+        }
+
         .tiempo-libre {
             font-size: 11px;
             font-weight: 700;
@@ -384,7 +391,9 @@
 
         .nota-item {
             display: flex;
-            align-items: flex-start;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+            align-items: center;
             gap: 4px;
             margin-bottom: 4px;
             border-bottom: 1px dashed rgba(0, 0, 0, 0.1);
@@ -392,7 +401,7 @@
         }
 
         .nota-texto {
-            flex: 1;
+            flex: 1 1 100%;
             outline: none;
             min-height: 20px;
             font-size: 14px;
@@ -563,6 +572,14 @@
         function actualizarCita(input) {
             saveAll();
             const bloque = input.closest('.bloque');
+            const spanLlegadaSidebar = bloque.querySelector('.llegada-estimada-sidebar');
+            if (!input.value) {
+                input.style.display = 'none';
+                if (spanLlegadaSidebar) spanLlegadaSidebar.style.display = 'block';
+            } else {
+                input.style.display = 'block';
+                if (spanLlegadaSidebar) spanLlegadaSidebar.style.display = 'none';
+            }
             const elLugar = bloque.querySelector('td[onblur="calcularDistancia(this)"]');
             if (elLugar) calcularDistancia(elLugar);
         }
@@ -701,7 +718,7 @@
                     <button class="action-btn" style="background:#ff9500" onclick="addEvento('${id}', 'comida')">Comida</button>
                     <button class="action-btn" style="background:#af52de" onclick="addEvento('${id}', 'cena')">Cena</button>
                     <button class="action-btn" style="background:#8e8e93" onclick="addEvento('${id}', 'salida')">Otro</button>
-                    <button class="action-btn" style="background:#5ac8fa" onclick="recalcularDiaCompleto(this)">RECALC</button>
+                    <button class="action-btn" style="background:#5ac8fa" onclick="recalcularDiaCompleto(this)">🔄</button>
                 </div>
                 <div class="eventos-lista"></div>
             </div>
@@ -727,6 +744,7 @@
             </div>
             <div class="time-sidebar">
                 <input type="time" onchange="actualizarCita(this)" onclick="event.stopPropagation()">
+                <span class="llegada-estimada-sidebar" style="display:none" onclick="this.previousElementSibling.showPicker(); event.stopPropagation();"></span>
             </div>
             <table oninput="saveAll()">
                 <tbody><tr class="header-evento-color" onclick="toggleEvento(this)"><td colspan="2" onclick="event.stopPropagation()"><span contenteditable="true">${titulo}</span><span class="tiempo-libre"></span></td><td style="text-align:right"><button class="btn-toggle-evento" onclick="event.stopPropagation(); toggleEvento(this.closest('tr'));">▼</button></td></tr>
@@ -800,17 +818,24 @@
                 filaTrayecto.innerText = "Calculando...";
 
                 const geocode = async (query) => {
-                    // Usamos Nominatim (OpenStreetMap) para permitir búsqueda por calles
-                    const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query + contexto)}&format=json&limit=1`;
-                    const resp = await fetch(url);
-                    const data = await resp.json();
-                    if (data && data.length > 0) {
-                        return { lat: data[0].lat, lon: data[0].lon };
-                    }
-                    // Intento de respaldo sin contexto por si el lugar ya incluye la ciudad o está fuera
-                    const resp2 = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=1`);
-                    const data2 = await resp2.json();
-                    if (data2 && data2.length > 0) return { lat: data2[0].lat, lon: data2[0].lon };
+                    const search = async (q) => {
+                        try {
+                            const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=1&countrycodes=es`;
+                            const resp = await fetch(url);
+                            if (!resp.ok) return null;
+                            const data = await resp.json();
+                            return (data && data.length > 0) ? { lat: data[0].lat, lon: data[0].lon } : null;
+                        } catch (e) { return null; }
+                    };
+
+                    // 1. Intento con contexto del día (ej: "Calle Mayor, Madrid")
+                    let res = await search(query + contexto);
+                    if (res) return res;
+
+                    // 2. Intento sin contexto (ej: "Frías de Albarracín")
+                    res = await search(query);
+                    if (res) return res;
+
                     throw new Error("No encontrado");
                 };
 
@@ -844,17 +869,23 @@
 
                     // Guardamos la llegada estimada para cálculos aunque no haya cita
                     bloqueActual.dataset.llegadaEstimada = nuevaHoraLlegada;
+                    const spanLlegadaSidebar = bloqueActual.querySelector('.llegada-estimada-sidebar');
+                    if (spanLlegadaSidebar) spanLlegadaSidebar.innerText = nuevaHoraLlegada;
 
                     if (inputHoraActual) {
-                        // Si no hay cita puesta, podemos sugerir la estimada o dejarlo vacío
-                        // Por ahora mantendremos el autocompletado si está vacío para no romper la cadena
+                        // Si no hay cita puesta, mostramos la estimada en el span y ocultamos el input
                         if (!inputHoraActual.value) {
-                            inputHoraActual.value = nuevaHoraLlegada;
+                            inputHoraActual.style.display = 'none';
+                            if (spanLlegadaSidebar) spanLlegadaSidebar.style.display = 'block';
+                        } else {
+                            inputHoraActual.style.display = 'block';
+                            if (spanLlegadaSidebar) spanLlegadaSidebar.style.display = 'none';
                         }
 
                         // Calcular tiempo libre comparando minutos totales
-                        if (inputHoraActual.value && spanTiempoLibre) {
-                            const [hCita, mCita] = inputHoraActual.value.split(':').map(Number);
+                        const valorHoraParaCalculo = inputHoraActual.value || nuevaHoraLlegada;
+                        if (valorHoraParaCalculo && spanTiempoLibre) {
+                            const [hCita, mCita] = valorHoraParaCalculo.split(':').map(Number);
                             const fechaCita = new Date(fechaSalida);
                             fechaCita.setHours(hCita, mCita, 0, 0);
 
@@ -891,17 +922,26 @@
             if (diaContainer.dataset.calculando === 'true') return;
 
             const lugares = diaContainer.querySelectorAll('.eventos-lista .bloque td[onblur="calcularDistancia(this)"]');
+            if (lugares.length === 0) return;
 
             diaContainer.dataset.calculando = 'true';
-            btn.innerText = '...';
+            const originalHTML = btn.innerHTML;
+            btn.innerHTML = '...';
 
             try {
                 for (const lugar of lugares) {
                     await calcularDistancia(lugar);
+                    // Pausa para respetar el límite de Nominatim (1 req/seg)
+                    await new Promise(r => setTimeout(r, 600));
                 }
+                alert("Recálculo del día completado.");
+            } catch (err) {
+                console.error(err);
+                alert("Hubo un problema al recalcular: " + err.message);
             } finally {
                 delete diaContainer.dataset.calculando;
-                btn.innerText = 'RECALC';
+                btn.innerHTML = originalHTML;
+                saveAll();
             }
         }
 
@@ -922,11 +962,13 @@
             const inputDuracion = bloque.querySelector('input[onblur="calcularSalida(this)"]');
             const inputSalida = bloque.querySelector('input[onchange="recalcularSiguiente(this)"]');
 
-            if (!inputLlegada || !inputLlegada.value || !inputDuracion || !inputSalida) return;
+            const valorLlegada = (inputLlegada && inputLlegada.value) ? inputLlegada.value : bloque.dataset.llegadaEstimada;
+
+            if (!valorLlegada || !inputDuracion || !inputSalida) return;
 
             const duracionMinutos = parseDuracion(inputDuracion.value);
 
-            const [horas, minutos] = inputLlegada.value.split(':').map(Number);
+            const [horas, minutos] = valorLlegada.split(':').map(Number);
             const fechaLlegada = new Date();
             fechaLlegada.setHours(horas, minutos, 0, 0);
 
@@ -939,6 +981,9 @@
         }
 
         function recalcularSiguiente(elSalida) {
+            const diaContainer = elSalida.closest('.dia-container');
+            if (diaContainer && diaContainer.dataset.calculando === 'true') return;
+
             const bloqueActual = elSalida.closest('.bloque');
             const bloqueSiguiente = bloqueActual.nextElementSibling;
             const lugarSiguiente = bloqueSiguiente?.querySelector('td[onblur="calcularDistancia(this)"]');
@@ -1003,93 +1048,117 @@
         }
 
         function actualizarEstructuraUI() {
-            // Reemplazar textos por iconos en etiquetas de columna (Migración)
-            document.querySelectorAll('.col-label').forEach(label => {
-                const text = label.innerText.trim().toLowerCase();
-                if (text === 'lugar') label.innerText = '📍';
-                else if (text === 'trayecto') label.innerText = '🚗';
-                else if (text === 'notas') label.innerText = '📝';
-                else if (text === 'duración') label.innerText = '⏳';
-                else if (text === 'salida') label.innerText = '🏁';
-            });
+            try {
+                // Reemplazar textos por iconos en etiquetas de columna (Migración)
+                document.querySelectorAll('.col-label').forEach(label => {
+                    const text = label.innerText.trim().toLowerCase();
+                    if (text === 'lugar') label.innerText = '📍';
+                    else if (text === 'trayecto') label.innerText = '🚗';
+                    else if (text === 'notas') label.innerText = '📝';
+                    else if (text === 'duración') label.innerText = '⏳';
+                    else if (text === 'salida') label.innerText = '🏁';
+                });
 
-            // Asegurar el tag de coste total al final si no existe
-            if (!document.getElementById('total-gastos-viaje')) {
-                const container = document.querySelector('.container');
-                container.insertAdjacentHTML('beforeend', '<div id="total-gastos-viaje" style="text-align: center; margin-top: 10px; font-weight: 900; font-size: 18px; color: #1c1c1e; padding: 10px; border-top: 2px solid #d1d1d6;">TOTAL GASTOS: 0.00 €</div>');
+                // Asegurar el tag de coste total al final si no existe
+                if (!document.getElementById('total-gastos-viaje')) {
+                    const container = document.querySelector('.container');
+                    container.insertAdjacentHTML('beforeend', '<div id="total-gastos-viaje" style="text-align: center; margin-top: 10px; font-weight: 900; font-size: 18px; color: #1c1c1e; padding: 10px; border-top: 2px solid #d1d1d6;">TOTAL GASTOS: 0.00 €</div>');
+                }
+
+                document.querySelectorAll('.dia-container').forEach(dia => {
+                    const controls = dia.querySelector('.dia-controls');
+                    if (controls && !controls.innerHTML.includes('recalcularDiaCompleto')) {
+                        controls.style.gridTemplateColumns = 'repeat(5, 1fr)';
+                        controls.insertAdjacentHTML('beforeend', `<button class="action-btn" style="background:#5ac8fa" onclick="recalcularDiaCompleto(this)">🔄</button>`);
+                    }
+
+                    // Eliminar tag de coste al día si existe
+                    const tag = dia.querySelector('.dia-coste-tag');
+                    if (tag) tag.remove();
+                    const flexCont = dia.querySelector('.dia-coste-flex-cont');
+                    if (flexCont) {
+                        const h3 = flexCont.querySelector('h3');
+                        if (h3) flexCont.before(h3);
+                        flexCont.remove();
+                    }
+                });
+
+                // Migración de notas (asegurar campo coste y onclick)
+                document.querySelectorAll('.nota-item').forEach(nota => {
+                    if (!nota.querySelector('.nota-coste')) {
+                        const delBtn = nota.querySelector('.btn-del-nota');
+                        const htmlCoste = `<input type="number" class="nota-coste" step="0.01" placeholder="0" oninput="actualizarCostes()" max="999"><span class="euro-symbol">€</span>`;
+                        if (delBtn) {
+                            delBtn.insertAdjacentHTML('beforebegin', htmlCoste);
+                            delBtn.setAttribute('onclick', 'this.parentElement.remove();actualizarCostes();');
+                        }
+                    }
+                });
+
+                // Migración del cajón del tiempo
+                document.querySelectorAll('.bloque').forEach(bloque => {
+                    if (!bloque.querySelector('.time-sidebar')) {
+                        const headerInput = bloque.querySelector('.header-evento-color input[type="time"]');
+                        const sidebar = document.createElement('div');
+                        sidebar.className = 'time-sidebar';
+                        if (headerInput) {
+                            sidebar.appendChild(headerInput);
+                            headerInput.setAttribute('onchange', 'actualizarCita(this)');
+                        } else {
+                            sidebar.innerHTML = '<input type="time" onchange="actualizarCita(this)" onclick="event.stopPropagation()">';
+                        }
+                        const controlsLeft = bloque.querySelector('.controls-left');
+                        if (controlsLeft) {
+                            controlsLeft.after(sidebar);
+                        } else {
+                            bloque.prepend(sidebar);
+                        }
+                    }
+
+                    // Asegurar el span de llegada estimada
+                    if (!bloque.querySelector('.llegada-estimada-sidebar')) {
+                        const sidebar = bloque.querySelector('.time-sidebar');
+                        if (sidebar) {
+                            sidebar.insertAdjacentHTML('beforeend', '<span class="llegada-estimada-sidebar" style="display:none" onclick="this.previousElementSibling.showPicker(); event.stopPropagation();"></span>');
+                        }
+                    }
+
+                    // Asegurar visibilidad inicial correcta
+                    const input = bloque.querySelector('.time-sidebar input[type="time"]');
+                    const span = bloque.querySelector('.llegada-estimada-sidebar');
+                    if (input && span) {
+                        if (!input.value) {
+                            input.style.display = 'none';
+                            span.style.display = 'block';
+                            if (bloque.dataset.llegadaEstimada) span.innerText = bloque.dataset.llegadaEstimada;
+                        } else {
+                            input.style.display = 'block';
+                            span.style.display = 'none';
+                        }
+                    }
+                });
+
+                // Añade el botón de toggle si no existe en eventos antiguos
+                document.querySelectorAll('.header-evento-color').forEach(header => {
+                    if (!header.querySelector('.btn-toggle-evento')) {
+                        const timeCell = header.querySelector('td[style="text-align:right"]');
+                        if (timeCell) {
+                            timeCell.insertAdjacentHTML('beforeend', `<button class="btn-toggle-evento" onclick="event.stopPropagation(); toggleEvento(this.closest('tr'));">▼</button>`);
+                        }
+                    }
+
+                    // Asegurar span de tiempo libre y estructura de título
+                    const tdTitulo = header.querySelector('td[colspan="2"]');
+                    if (tdTitulo && !tdTitulo.querySelector('.tiempo-libre')) {
+                        const textoActual = tdTitulo.innerText;
+                        tdTitulo.innerHTML = `<span contenteditable="true">${textoActual}</span><span class="tiempo-libre"></span>`;
+                        tdTitulo.removeAttribute('contenteditable');
+                        tdTitulo.onclick = (e) => e.stopPropagation();
+                    }
+                });
+            } catch (e) {
+                console.error("Error en migración:", e);
             }
-
-            document.querySelectorAll('.dia-container').forEach(dia => {
-                const controls = dia.querySelector('.dia-controls');
-                if (controls && !controls.querySelector('button[onclick^="recalcularDiaCompleto"]')) {
-                    const diaId = dia.id;
-                    controls.style.gridTemplateColumns = 'repeat(5, 1fr)';
-                    controls.insertAdjacentHTML('beforeend', `<button class="action-btn" style="background:#5ac8fa" onclick="recalcularDiaCompleto(this)">RECALC</button>`);
-                }
-
-                // Eliminar tag de coste al día si existe
-                const tag = dia.querySelector('.dia-coste-tag');
-                if (tag) tag.remove();
-                const flexCont = dia.querySelector('.dia-coste-flex-cont');
-                if (flexCont) {
-                    const h3 = flexCont.querySelector('h3');
-                    if (h3) flexCont.before(h3);
-                    flexCont.remove();
-                }
-            });
-
-            // Migración de notas (asegurar campo coste y onclick)
-            document.querySelectorAll('.nota-item').forEach(nota => {
-                if (!nota.querySelector('.nota-coste')) {
-                    const delBtn = nota.querySelector('.btn-del-nota');
-                    const htmlCoste = `<input type="number" class="nota-coste" step="0.01" placeholder="0" oninput="actualizarCostes()" max="999"><span class="euro-symbol">€</span>`;
-                    if (delBtn) {
-                        delBtn.insertAdjacentHTML('beforebegin', htmlCoste);
-                        delBtn.setAttribute('onclick', 'this.parentElement.remove();actualizarCostes();');
-                    }
-                }
-            });
-
-            // Migración del cajón del tiempo
-            document.querySelectorAll('.bloque').forEach(bloque => {
-                if (!bloque.querySelector('.time-sidebar')) {
-                    const headerInput = bloque.querySelector('.header-evento-color input[type="time"]');
-                    const sidebar = document.createElement('div');
-                    sidebar.className = 'time-sidebar';
-                    if (headerInput) {
-                        sidebar.appendChild(headerInput);
-                        headerInput.setAttribute('onchange', 'actualizarCita(this)');
-                    } else {
-                        sidebar.innerHTML = '<input type="time" onchange="actualizarCita(this)" onclick="event.stopPropagation()">';
-                    }
-                    const controlsLeft = bloque.querySelector('.controls-left');
-                    if (controlsLeft) {
-                        controlsLeft.after(sidebar);
-                    } else {
-                        bloque.prepend(sidebar);
-                    }
-                }
-            });
-
-            // Añade el botón de toggle si no existe en eventos antiguos
-            document.querySelectorAll('.header-evento-color').forEach(header => {
-                if (!header.querySelector('.btn-toggle-evento')) {
-                    const timeCell = header.querySelector('td[style="text-align:right"]');
-                    if (timeCell) {
-                        timeCell.insertAdjacentHTML('beforeend', `<button class="btn-toggle-evento" onclick="event.stopPropagation(); toggleEvento(this.closest('tr'));">▼</button>`);
-                    }
-                }
-
-                // Asegurar span de tiempo libre y estructura de título
-                const tdTitulo = header.querySelector('td[colspan="2"]');
-                if (tdTitulo && !tdTitulo.querySelector('.tiempo-libre')) {
-                    const textoActual = tdTitulo.innerText;
-                    tdTitulo.innerHTML = `<span contenteditable="true">${textoActual}</span><span class="tiempo-libre"></span>`;
-                    tdTitulo.removeAttribute('contenteditable');
-                    tdTitulo.onclick = (e) => e.stopPropagation();
-                }
-            });
-
             actualizarCostes();
         }
 
