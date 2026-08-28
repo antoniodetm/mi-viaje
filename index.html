@@ -510,7 +510,7 @@
 
     <div class="container">
         <h2 id="titulo-viaje" contenteditable="true" style="text-align:center; margin: 5px 0; font-size: 24px;"
-            onblur="saveAll()">Mi Itinerario</h2>
+            onblur="formatearTexto(this); saveAll()">Mi Itinerario</h2>
 
         <div class="main-nav">
             <div class="nav-row-quad">
@@ -580,7 +580,7 @@
                 input.style.display = 'block';
                 if (spanLlegadaSidebar) spanLlegadaSidebar.style.display = 'none';
             }
-            const elLugar = bloque.querySelector('td[onblur="calcularDistancia(this)"]');
+            const elLugar = bloque.querySelector('td[onblur*="calcularDistancia"]');
             if (elLugar) calcularDistancia(elLugar);
         }
 
@@ -614,6 +614,13 @@
             alert("No se encontró un itinerario con ese nombre en Firebase.");
             return false;
         }
+        function formatearTexto(el) {
+            let text = el.innerText.trim();
+            if (text.length > 0) {
+                el.innerText = text.charAt(0).toUpperCase() + text.slice(1).toLowerCase();
+            }
+        }
+
         function linkify(el) {
             // Obtenemos solo el texto para evitar duplicar enlaces ya creados
             let text = el.innerText;
@@ -702,8 +709,8 @@
             const html = `<div class="dia-container" id="${id}">
             <div class="bloque-dia-header" onclick="toggleDia(this)">
                 <div class="header-info-wrapper">
-                    <h3 contenteditable="true" onclick="event.stopPropagation()" onblur="fetchClimaGlobal(this.nextElementSibling)">${fecha}</h3>
-                    <div class="nombre-dia-personalizado" contenteditable="true" onblur="fetchClimaGlobal(this)" onclick="event.stopPropagation()">Destino...</div>
+                    <h3 contenteditable="true" onclick="event.stopPropagation()" onblur="formatearTexto(this); fetchClimaGlobal(this.nextElementSibling)">${fecha}</h3>
+                    <div class="nombre-dia-personalizado" contenteditable="true" onblur="formatearTexto(this); fetchClimaGlobal(this)" onclick="event.stopPropagation()">Destino...</div>
                 </div>
                 <div class="clima-wrapper"></div>
                 <div class="dia-management-block">
@@ -747,8 +754,8 @@
                 <span class="llegada-estimada-sidebar" style="display:none" onclick="this.previousElementSibling.showPicker(); event.stopPropagation();"></span>
             </div>
             <table oninput="saveAll()">
-                <tbody><tr class="header-evento-color" onclick="toggleEvento(this)"><td colspan="2" onclick="event.stopPropagation()"><span contenteditable="true">${titulo}</span><span class="tiempo-libre"></span></td><td style="text-align:right"><button class="btn-toggle-evento" onclick="event.stopPropagation(); toggleEvento(this.closest('tr'));">▼</button></td></tr>
-                <tr><td class="col-label">📍</td><td contenteditable="true" class="col-data" onblur="calcularDistancia(this)">...</td><td style="text-align:right; width:25px;" class="btn-mapa" data-url="" onclick="gestionarMapa(this)">📍</td></tr>
+                <tbody><tr class="header-evento-color" onclick="toggleEvento(this)"><td colspan="2" onclick="event.stopPropagation()"><span contenteditable="true" onblur="formatearTexto(this); saveAll()">${titulo}</span><span class="tiempo-libre"></span></td><td style="text-align:right"><button class="btn-toggle-evento" onclick="event.stopPropagation(); toggleEvento(this.closest('tr'));">▼</button></td></tr>
+                <tr><td class="col-label">📍</td><td contenteditable="true" class="col-data" onblur="formatearTexto(this); calcularDistancia(this)">...</td><td style="text-align:right; width:25px;" class="btn-mapa" data-url="" onclick="gestionarMapa(this)">📍</td></tr>
                 <tr class="fila-trayecto"><td class="col-label">🚗</td><td colspan="2" class="col-data"></td></tr>
                 <tr><td class="col-label">📝</td><td colspan="2" class="col-data">
                     <div class="notas-container"></div>
@@ -764,7 +771,7 @@
         function addNota(btn, texto = "", coste = "") {
             const container = btn.previousElementSibling;
             const html = `<div class="nota-item">
-            <div class="nota-texto" contenteditable="true" onblur="linkify(this)">${texto}</div>
+            <div class="nota-texto" contenteditable="true" onblur="formatearTexto(this); linkify(this)">${texto}</div>
             <input type="number" class="nota-coste" step="0.01" placeholder="0" value="${coste}" oninput="actualizarCostes()" max="999">
             <span class="euro-symbol">€</span>
             <span class="btn-del-nota" onclick="this.parentElement.remove();actualizarCostes();">✕</span>
@@ -803,7 +810,7 @@
             }
 
             const lugarActual = elLugar.innerText.trim();
-            const lugarAnterior = bloqueAnterior.querySelector('td[onblur="calcularDistancia(this)"]').innerText.trim();
+            const lugarAnterior = bloqueAnterior.querySelector('td[onblur*="calcularDistancia"]').innerText.trim();
 
             if (!lugarActual || !lugarAnterior) {
                 filaTrayecto.innerText = "";
@@ -921,7 +928,7 @@
             // Evita que se ejecute si ya está calculando
             if (diaContainer.dataset.calculando === 'true') return;
 
-            const lugares = diaContainer.querySelectorAll('.eventos-lista .bloque td[onblur="calcularDistancia(this)"]');
+            const lugares = diaContainer.querySelectorAll('.eventos-lista .bloque td[onblur*="calcularDistancia"]');
             if (lugares.length === 0) return;
 
             diaContainer.dataset.calculando = 'true';
@@ -986,7 +993,7 @@
 
             const bloqueActual = elSalida.closest('.bloque');
             const bloqueSiguiente = bloqueActual.nextElementSibling;
-            const lugarSiguiente = bloqueSiguiente?.querySelector('td[onblur="calcularDistancia(this)"]');
+            const lugarSiguiente = bloqueSiguiente?.querySelector('td[onblur*="calcularDistancia"]');
             if (lugarSiguiente) calcularDistancia(lugarSiguiente);
             saveAll();
         }
@@ -1035,7 +1042,7 @@
             const bloque = btn.closest('.bloque');
             const bloqueSiguiente = bloque.nextElementSibling;
             bloque.remove(); // El saveAll se llama en el onclick del botón
-            const lugarSiguiente = bloqueSiguiente?.querySelector('td[onblur="calcularDistancia(this)"]');
+            const lugarSiguiente = bloqueSiguiente?.querySelector('td[onblur*="calcularDistancia"]');
             if (lugarSiguiente) calcularDistancia(lugarSiguiente);
             saveAll();
         }
@@ -1151,9 +1158,21 @@
                     const tdTitulo = header.querySelector('td[colspan="2"]');
                     if (tdTitulo && !tdTitulo.querySelector('.tiempo-libre')) {
                         const textoActual = tdTitulo.innerText;
-                        tdTitulo.innerHTML = `<span contenteditable="true">${textoActual}</span><span class="tiempo-libre"></span>`;
+                        tdTitulo.innerHTML = `<span contenteditable="true" onblur="formatearTexto(this); saveAll()">${textoActual}</span><span class="tiempo-libre"></span>`;
                         tdTitulo.removeAttribute('contenteditable');
                         tdTitulo.onclick = (e) => e.stopPropagation();
+                    }
+                });
+
+                // Asegurar que todos los elementos editables tengan el formateo de texto
+                document.querySelectorAll('[contenteditable="true"]').forEach(el => {
+                    const currentBlur = el.getAttribute('onblur') || "";
+                    if (!currentBlur.includes('formatearTexto')) {
+                        if (currentBlur) {
+                            el.setAttribute('onblur', `formatearTexto(this); ${currentBlur}`);
+                        } else {
+                            el.setAttribute('onblur', "formatearTexto(this); saveAll()");
+                        }
                     }
                 });
             } catch (e) {
@@ -1163,8 +1182,8 @@
         }
 
         function recalcularDistanciasAfectadas(bloqueMovido, bloqueAfectado) {
-            const lugarMovido = bloqueMovido.querySelector('td[onblur="calcularDistancia(this)"]');
-            const lugarAfectado = bloqueAfectado?.querySelector('td[onblur="calcularDistancia(this)"]');
+            const lugarMovido = bloqueMovido.querySelector('td[onblur*="calcularDistancia"]');
+            const lugarAfectado = bloqueAfectado?.querySelector('td[onblur*="calcularDistancia"]');
             if (lugarMovido) calcularDistancia(lugarMovido);
             if (lugarAfectado) calcularDistancia(lugarAfectado);
             saveAll();

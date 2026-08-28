@@ -1,0 +1,13 @@
+{
+    "rules": {
+        "itinerarios": {
+            "$itinerarioId": {
+                ".read": true,
+                ".write": true,
+                ".validate": "newData.hasChildren(['titulo', 'cuerpo']) && newData.child('titulo').isString() && newData.child('cuerpo').isString()"
+            }
+        },
+        ".read": false,
+        ".write": false
+    }
+}
