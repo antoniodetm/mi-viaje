@@ -1,0 +1,1261 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Itinerario Viaje Pro</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: #f2f2f7;
+            margin: 0;
+            padding: 2px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .container {
+            background: white;
+            padding: 2px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 400px;
+            box-sizing: border-box;
+        }
+
+        .main-nav {
+            position: sticky;
+            top: 0;
+            background: white;
+            z-index: 1000;
+            padding: 2px 0;
+            border-bottom: 1px solid #d1d1d6;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .nav-row-quad {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 2px;
+        }
+
+        .action-btn {
+            padding: 0;
+            border: none;
+            border-radius: 4px;
+            font-weight: 700;
+            font-size: 13px;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 35px;
+            cursor: pointer;
+        }
+
+        .dia-container {
+            margin-bottom: 5px;
+            border: 1px solid #d1d1d6;
+            border-radius: 8px;
+            background: #fff;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .bloque-dia-header {
+            background: #1c1c1e;
+            color: white;
+            display: grid;
+            grid-template-columns: 1fr auto 35px;
+            align-items: center;
+            cursor: pointer;
+            min-height: 55px;
+        }
+
+        .header-info-wrapper {
+            padding: 2px 6px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header-info-wrapper h3 {
+            margin: 0;
+            font-size: 12px;
+            font-weight: 400;
+            opacity: 0.7;
+            text-transform: uppercase;
+            outline: none;
+        }
+
+        .nombre-dia-personalizado {
+            font-size: 22px;
+            font-weight: 900;
+            line-height: 1;
+            min-width: 80px;
+            outline: none;
+        }
+
+        .clima-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            padding-right: 4px;
+        }
+
+        .clima-icon {
+            font-size: 24px;
+        }
+
+        .temp-row {
+            display: flex;
+            gap: 3px;
+            font-size: 16px;
+            font-weight: 900;
+        }
+
+        .dia-management-block {
+            display: flex;
+            flex-direction: column;
+            background: #2c2c2e;
+            align-self: stretch;
+            justify-content: space-around;
+        }
+
+        .btn-dia-order {
+            background: transparent;
+            border: none;
+            color: white;
+            font-size: 12px;
+            cursor: pointer;
+        }
+
+        .btn-dia-delete {
+            color: #ff453a;
+            font-size: 18px;
+            text-align: center;
+            cursor: pointer;
+        }
+
+        .dia-contenido {
+            display: none;
+            padding-bottom: 2px;
+        }
+
+        .dia-contenido.abierto {
+            display: block;
+        }
+
+        .dia-controls {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 2px;
+            padding: 2px;
+            background: #f2f2f7;
+        }
+
+        .dia-controls .action-btn:disabled {
+            background-color: #8e8e93 !important;
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+
+        .bloque {
+            margin: 4px 2px;
+            border-radius: 8px;
+            position: relative;
+            padding-left: 82px;
+            overflow: hidden;
+            border: 1px solid rgba(0, 0, 0, 0.1);
+        }
+
+        .bloque.completado {
+            opacity: 0.3;
+            filter: grayscale(1);
+        }
+
+        .bloque.contraido table tbody tr:not(.header-evento-color) {
+            display: none;
+        }
+
+        .bloque.tipo-visita {
+            background-color: #e8f5e9;
+        }
+
+        .bloque.tipo-comida {
+            background-color: #fff3e0;
+        }
+
+        .bloque.tipo-cena {
+            background-color: #f3e5f5;
+        }
+
+        .bloque.tipo-salida {
+            background-color: #f5f5f5;
+        }
+
+        .controls-left {
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 32px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            border-right: 1px solid rgba(0, 0, 0, 0.05);
+            background: rgba(0, 0, 0, 0.03);
+            z-index: 10;
+        }
+
+        .time-sidebar {
+            position: absolute;
+            left: 32px;
+            top: 0;
+            width: 50px;
+            height: 31px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0, 0, 0, 0.1);
+            border-right: 1px solid rgba(0, 0, 0, 0.05);
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+            z-index: 9;
+        }
+
+        .time-sidebar input[type="time"] {
+            width: 100%;
+            border: none;
+            background: transparent;
+            font-family: inherit;
+            font-size: 14px;
+            font-weight: 900;
+            text-align: center;
+            color: #1c1c1e;
+            padding: 0;
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        .time-sidebar input[type="time"]::-webkit-calendar-picker-indicator {
+            display: none;
+            -webkit-appearance: none;
+        }
+
+        .llegada-estimada-sidebar {
+            font-size: 14px;
+            font-weight: 900;
+            color: #8e8e93;
+            cursor: pointer;
+        }
+
+        .tiempo-libre {
+            font-size: 11px;
+            font-weight: 700;
+            margin-left: 8px;
+            padding: 2px 4px;
+            border-radius: 4px;
+            background: rgba(255, 255, 255, 0.3);
+            color: white;
+            display: inline-block;
+            vertical-align: middle;
+        }
+
+        .btn-ctrl {
+            width: 100%;
+            flex: 1;
+            border: none;
+            background: transparent;
+            font-size: 14px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #333;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: transparent;
+        }
+
+        td {
+            padding: 4px 6px;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+            font-size: 16px;
+            color: #1c1c1e;
+        }
+
+        .header-evento-color td {
+            font-weight: 900;
+            color: white;
+            padding: 6px;
+            font-size: 15px;
+            cursor: pointer;
+        }
+
+        .tipo-visita .header-evento-color {
+            background-color: #34c759;
+        }
+
+        .tipo-comida .header-evento-color {
+            background-color: #ff9500;
+        }
+
+        .tipo-cena .header-evento-color {
+            background-color: #af52de;
+        }
+
+        .tipo-salida .header-evento-color {
+            background-color: #8e8e93;
+        }
+
+        .col-label {
+            width: 1px;
+            white-space: nowrap;
+            font-size: 16px;
+            font-weight: 700;
+            color: rgba(0, 0, 0, 0.5);
+            text-transform: uppercase;
+            padding-right: 6px;
+        }
+
+        .col-data {
+            width: 100%;
+            font-weight: 500;
+            word-break: break-all;
+        }
+
+        .col-data a {
+            color: #007aff !important;
+            text-decoration: underline !important;
+            cursor: pointer !important;
+        }
+
+        .btn-mapa {
+            cursor: pointer;
+            font-size: 20px;
+            opacity: 0.3;
+        }
+
+        .btn-mapa.con-url {
+            opacity: 1;
+        }
+
+        .media-area {
+            width: 100%;
+            display: block;
+            margin-top: 2px;
+        }
+
+        .media-item {
+            position: relative;
+            margin-bottom: 4px;
+        }
+
+        .media-item img {
+            width: 100%;
+            border-radius: 4px;
+            display: block;
+        }
+
+        .media-btns {
+            display: flex;
+            gap: 4px;
+            margin-top: 2px;
+        }
+
+        .btn-delete-media {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background: rgba(255, 59, 48, 0.8);
+            color: white;
+            border-radius: 50%;
+            width: 22px;
+            height: 22px;
+            text-align: center;
+            cursor: pointer;
+            font-size: 14px;
+            line-height: 22px;
+            font-weight: bold;
+            border: none;
+            z-index: 5;
+        }
+
+        .nota-item {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+            align-items: center;
+            gap: 4px;
+            margin-bottom: 4px;
+            border-bottom: 1px dashed rgba(0, 0, 0, 0.1);
+            padding-bottom: 4px;
+        }
+
+        .nota-texto {
+            flex: 1 1 100%;
+            outline: none;
+            min-height: 20px;
+            font-size: 14px;
+        }
+
+        .btn-del-nota {
+            color: #ff453a;
+            font-weight: bold;
+            cursor: pointer;
+            padding: 0 4px;
+        }
+
+        .nota-coste {
+            width: 40px;
+            border: 1px solid #d1d1d6;
+            border-radius: 4px;
+            font-size: 13px;
+            padding: 1px 3px;
+            text-align: right;
+            font-family: inherit;
+            -moz-appearance: textfield;
+        }
+
+        .nota-coste::-webkit-outer-spin-button,
+        .nota-coste::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        .euro-symbol {
+            font-size: 13px;
+            color: #8e8e93;
+            margin-right: 4px;
+        }
+
+        .dia-coste-tag {
+            background: #34c759;
+            color: white;
+            padding: 2px 6px;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 800;
+            margin-right: 8px;
+        }
+
+        .total-viaje-tag {
+            background: #ff9500;
+            color: white;
+            padding: 4px 10px;
+            border-radius: 15px;
+            font-size: 18px;
+            font-weight: 900;
+            margin-bottom: 10px;
+            display: inline-block;
+        }
+
+        input[type="time"] {
+            border: none;
+            font-family: inherit;
+            font-size: 16px;
+            font-weight: 900;
+            background: transparent;
+            color: inherit;
+            width: 85px;
+            -webkit-appearance: none;
+        }
+
+        input[type="time"]::-webkit-calendar-picker-indicator {
+            display: none;
+            -webkit-appearance: none;
+        }
+
+        .btn-toggle-evento {
+            background: transparent;
+            border: none;
+            color: white;
+            font-size: 18px;
+            cursor: pointer;
+            padding: 0 5px;
+            vertical-align: middle;
+        }
+    </style>
+    <!-- SDK de Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
+    <script>
+        // Configuración de tu proyecto de Firebase
+        // REEMPLAZA ESTO con la configuración real de tu proyecto desde la consola de Firebase
+        const firebaseConfig = {
+            apiKey: "AIzaSyCDvgv6A8ugOmfgX9jKiCp_0ccyomxYOk0", // Reemplaza con tu API Key
+            authDomain: "rutas-e051f.firebaseapp.com",
+            databaseURL: "https://rutas-e051f-default-rtdb.europe-west1.firebasedatabase.app", // Asegúrate que la URL es correcta
+            projectId: "rutas-e051f",
+            storageBucket: "rutas-e051f.appspot.com",
+            messagingSenderId: "263100723365",
+            appId: "1:263100723365:web:2e97eec355c1cd9518dd4c"
+        };
+
+        // Inicializar Firebase
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+        const auth = firebase.auth();
+
+        // Autenticación anónima para cumplir con las reglas de seguridad de Firebase
+        auth.signInAnonymously().catch((error) => {
+            console.error("Error en autenticación anónima:", error.message);
+            alert("Error de autenticación en Firebase: " + error.message + ". Comprueba tu API Key.");
+        });
+    </script>
+</head>
+
+<body>
+
+    <div class="container">
+        <h2 id="titulo-viaje" contenteditable="true" style="text-align:center; margin: 5px 0; font-size: 24px;"
+            onblur="formatearTexto(this); saveAll()">Mi Itinerario</h2>
+
+        <div class="main-nav">
+            <div class="nav-row-quad">
+                <button class="action-btn" style="background:#007aff" onclick="guardarEnFirebase()">SUBIR FB</button>
+                <button class="action-btn" style="background:#34c759"
+                    onclick="document.getElementById('import-file').click()">ABRIR</button>
+                <input type="file" id="import-file" style="display:none" accept=".json" onchange="importarDatos(this)">
+                <button id="sync-btn" class="action-btn" style="background:#5856d6"
+                    onclick="cargarDesdeFirebase()">CARGAR FB</button>
+                <button class="action-btn" style="background:#1c1c1e" onclick="addDia()">+ DÍA</button>
+            </div>
+        </div>
+
+        <div id="itinerario"></div>
+        <button class="action-btn"
+            style="background:#ff3b30; width: 100%; margin-top: 5px; min-height: 25px; font-size: 10px;"
+            onclick="limpiarTodo()">BORRAR TODO</button>
+        <button class="action-btn"
+            style="background:#8e8e93; width: 100%; margin-top: 2px; min-height: 25px; font-size: 10px;"
+            onclick="exportarDatos()">GUARDAR JSON</button>
+        <div id="total-gastos-viaje"
+            style="text-align: center; margin-top: 10px; font-weight: 900; font-size: 18px; color: #1c1c1e; padding: 10px; border-top: 2px solid #d1d1d6;">
+            TOTAL GASTOS: 0.00 €</div>
+    </div>
+
+    <script>
+        const weatherIcons = { 0: "☀️", 1: "🌤️", 2: "⛅", 3: "☁️", 45: "🌫️", 48: "🌫️", 51: "🌦️", 53: "🌦️", 55: "🌦️", 61: "🌧️", 63: "🌧️", 65: "🌧️", 71: "❄️", 73: "❄️", 75: "❄️", 77: "🌨️", 80: "🌦️", 81: "🌧️", 82: "🌧️", 95: "⛈️", 96: "⛈️", 99: "⛈️" };
+        const geocodeCache = new Map();
+        let lastRequestTime = 0;
+
+        async function throttledFetch(url) {
+            const now = Date.now();
+            const timeSinceLastRequest = now - lastRequestTime;
+            if (timeSinceLastRequest < 1100) {
+                await new Promise(r => setTimeout(r, 1100 - timeSinceLastRequest));
+            }
+            lastRequestTime = Date.now();
+            return fetch(url);
+        }
+
+        window.onload = () => {
+            // Carga desde el almacenamiento local al iniciar
+            const saved = localStorage.getItem('miItinerario');
+            const savedTitle = localStorage.getItem('tituloViaje');
+            if (savedTitle) document.getElementById('titulo-viaje').innerText = savedTitle;
+            if (saved && saved !== "undefined" && saved.trim() !== "") {
+                document.getElementById('itinerario').innerHTML = saved;
+                actualizarEfectos();
+            } else { addDia(); }
+        };
+
+        function saveAll() {
+            document.querySelectorAll('input[type="time"]').forEach(i => i.setAttribute('value', i.value));
+            document.querySelectorAll('input[type="checkbox"]').forEach(i => i.checked ? i.setAttribute('checked', 'checked') : i.removeAttribute('checked'));
+            document.querySelectorAll('input[onblur="calcularSalida(this)"]').forEach(i => i.setAttribute('value', i.value));
+            document.querySelectorAll('.nota-coste').forEach(i => i.setAttribute('value', i.value));
+            localStorage.setItem('miItinerario', document.getElementById('itinerario').innerHTML);
+            localStorage.setItem('tituloViaje', document.getElementById('titulo-viaje').innerText);
+        }
+
+        function actualizarCostes() {
+            let totalViaje = 0;
+            document.querySelectorAll('.nota-coste').forEach(input => {
+                totalViaje += parseFloat(input.value) || 0;
+            });
+            const footerTotal = document.getElementById('total-gastos-viaje');
+            if (footerTotal) footerTotal.innerText = "TOTAL GASTOS: " + totalViaje.toFixed(2) + " €";
+            saveAll();
+        }
+
+        function actualizarCita(input) {
+            saveAll();
+            const bloque = input.closest('.bloque');
+            const spanLlegadaSidebar = bloque.querySelector('.llegada-estimada-sidebar');
+            if (!input.value) {
+                input.style.display = 'none';
+                if (spanLlegadaSidebar) spanLlegadaSidebar.style.display = 'block';
+            } else {
+                input.style.display = 'block';
+                if (spanLlegadaSidebar) spanLlegadaSidebar.style.display = 'none';
+            }
+            const elLugar = bloque.querySelector('td[onblur*="calcularDistancia"]');
+            if (elLugar) calcularDistancia(elLugar);
+        }
+
+        function guardarEnFirebase() {
+            saveAll(); // Primero guarda el estado actual en el DOM
+            const user = auth.currentUser;
+
+            if (!user) {
+                alert("No se ha podido autenticar con Firebase. Inténtalo de nuevo.");
+                return;
+            }
+
+            const itinerarioId = prompt("Introduce un nombre para guardar el itinerario en la nube:", document.getElementById('titulo-viaje').innerText.trim().toLowerCase().replace(/\s+/g, '-'));
+            if (!itinerarioId) return;
+
+            const datos = {
+                titulo: document.getElementById('titulo-viaje').innerText,
+                cuerpo: document.getElementById('itinerario').innerHTML,
+                uid: user.uid
+            };
+
+            database.ref('itinerarios/' + itinerarioId).set(datos)
+                .then(() => alert('¡Itinerario guardado en Firebase con éxito!'))
+                .catch(error => {
+                    console.error("Error completo de Firebase:", error);
+                    alert('Error al guardar en Firebase: ' + error.message);
+                });
+        }
+
+        function cargarDesdeFirebase() {
+            const itinerarioId = prompt("Introduce el nombre del itinerario a cargar desde la nube:");
+            if (!itinerarioId) return;
+
+            database.ref('itinerarios/' + itinerarioId).once('value')
+                .then((snapshot) => {
+                    if (snapshot.exists()) {
+                        if (confirm(`¿Cargar '${itinerarioId}' desde Firebase? Se sobrescribirá el itinerario actual.`)) {
+                            cargarJSON(snapshot.val());
+                        }
+                    } else {
+                        alert("No se encontró un itinerario con ese nombre en Firebase.");
+                    }
+                })
+                .catch((error) => {
+                    console.error("Error al cargar desde Firebase:", error);
+                    alert("Error al cargar desde Firebase: " + error.message);
+                });
+        }
+        function formatearTexto(el) {
+            let text = el.innerText.trim();
+            if (text.length > 0) {
+                el.innerText = text.charAt(0).toUpperCase() + text.slice(1).toLowerCase();
+            }
+        }
+
+        function linkify(el) {
+            // Obtenemos solo el texto para evitar duplicar enlaces ya creados
+            let text = el.innerText;
+            const urlRegex = /(https?:\/\/[^\s]+)/g;
+
+            if (urlRegex.test(text)) {
+                // Reemplazamos el contenido con el enlace
+                el.innerHTML = text.replace(urlRegex, url => `<a href="${url}" target="_blank" onmousedown="window.open('${url}', '_blank')">${url}</a>`);
+            }
+            saveAll();
+        }
+
+        function exportarDatos() {
+            saveAll();
+            const d = { titulo: document.getElementById('titulo-viaje').innerText, cuerpo: document.getElementById('itinerario').innerHTML };
+            const blob = new Blob([JSON.stringify(d)], { type: "application/json" });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = "itinerario_viaje.json";
+            a.click();
+        }
+
+        function cargarJSON(d) {
+            if (!d) return;
+            document.getElementById('itinerario').innerHTML = d.cuerpo || "";
+            document.getElementById('titulo-viaje').innerText = d.titulo || "Mi Itinerario";
+            saveAll();
+            actualizarEfectos();
+        }
+
+        function importarDatos(input) {
+            if (!input.files[0]) return;
+            const reader = new FileReader();
+            reader.onload = e => { try { cargarJSON(JSON.parse(e.target.result)); } catch (err) { alert("Error."); } };
+            reader.readAsText(input.files[0]);
+            input.value = "";
+        }
+
+        async function abrirDesdeGitHub() {
+            const filename = prompt("Introduce el nombre del archivo JSON (ej: albarracin):", "albarracin");
+            if (!filename) return;
+
+            // Construimos la URL completa asumiendo la ruta base
+            const baseUrl = "https://github.com/antoniodetm/mi-viaje/blob/main/";
+            const fullUrl = `${baseUrl}${filename}.json`;
+
+            let rawGitHubUrl = fullUrl;
+            if (fullUrl.includes("github.com") && fullUrl.includes("/blob/")) {
+                rawGitHubUrl = fullUrl.replace("github.com", "raw.githubusercontent.com").replace("/blob/", "/");
+            }
+
+            const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(rawGitHubUrl)}`;
+
+            try {
+                const resp = await fetch(proxyUrl);
+                if (!resp.ok) {
+                    if (resp.status === 404) {
+                        throw new Error("Archivo no encontrado (404). Revisa la URL.");
+                    }
+                    throw new Error(`Error al cargar el archivo: ${resp.status} ${resp.statusText}`);
+                }
+                const data = await resp.json();
+                const d = JSON.parse(data.contents); // El contenido real está dentro de 'contents'
+                if (confirm(`¿Cargar el itinerario desde GitHub? Esto sobrescribirá el itinerario actual.`)) {
+                    cargarJSON(d);
+                }
+            } catch (e) {
+                console.error("Error al abrir desde GitHub:", e);
+                let errorMessage = e.message || "No se pudo cargar el archivo desde GitHub.";
+                if (errorMessage === "Failed to fetch") {
+                    errorMessage += "\n\nPosibles causas:\n- Problemas de conexión a internet.\n- El servicio proxy (allorigins.win) está caído o bloqueado.\n- Extensiones del navegador (ej. ad-blockers) interfiriendo.\n- El archivo JSON no existe o la URL es incorrecta.";
+                } else if (e instanceof SyntaxError && e.message.includes("JSON")) {
+                    errorMessage = "Error al procesar el archivo JSON. Asegúrate de que el contenido sea un JSON válido.";
+                }
+                alert(`Error: ${errorMessage}`);
+            }
+        }
+
+        function addDia() {
+            let fecha = new Date().toISOString().split('T')[0];
+            const id = "dia-" + Date.now();
+            const html = `<div class="dia-container" id="${id}">
+            <div class="bloque-dia-header" onclick="toggleDia(this)">
+                <div class="header-info-wrapper">
+                    <h3 contenteditable="true" onclick="event.stopPropagation()" onblur="formatearTexto(this); fetchClimaGlobal(this.nextElementSibling); recalcularDiaCompleto(this)">${fecha}</h3>
+                    <div class="nombre-dia-personalizado" contenteditable="true" onblur="formatearTexto(this); fetchClimaGlobal(this); recalcularDiaCompleto(this)" onclick="event.stopPropagation()">Destino...</div>
+                </div>
+                <div class="clima-wrapper"></div>
+                <div class="dia-management-block">
+                    <button class="btn-dia-order" onclick="event.stopPropagation(); moverDia(this, 'arriba')">▲</button>
+                    <span class="btn-dia-delete" onclick="event.stopPropagation(); if(confirm('¿Borrar?')){this.closest('.dia-container').remove();actualizarCostes();}">✕</span>
+                    <button class="btn-dia-order" onclick="event.stopPropagation(); moverDia(this, 'abajo')">▼</button>
+                </div>
+            </div>
+            <div class="dia-contenido">
+                <div class="dia-controls">
+                    <button class="action-btn" style="background:#34c759" onclick="addEvento('${id}', 'visita')">Visita</button>
+                    <button class="action-btn" style="background:#ff9500" onclick="addEvento('${id}', 'comida')">Comida</button>
+                    <button class="action-btn" style="background:#af52de" onclick="addEvento('${id}', 'cena')">Cena</button>
+                    <button class="action-btn" style="background:#8e8e93" onclick="addEvento('${id}', 'salida')">Otro</button>
+                    <button class="action-btn" style="background:#5ac8fa" onclick="recalcularDiaCompleto(this)">🔄</button>
+                </div>
+                <div class="eventos-lista"></div>
+            </div>
+        </div>`;
+            document.getElementById('itinerario').insertAdjacentHTML('beforeend', html);
+            saveAll();
+        }
+
+        function addEvento(diaId, tipo) {
+            const lista = document.querySelector(`#${diaId} .eventos-lista`);
+            const conf = { visita: ['tipo-visita', 'VISITA'], comida: ['tipo-comida', 'COMIDA'], cena: ['tipo-cena', 'CENA'], salida: ['tipo-salida', 'OTRO'] };
+            const [clase, titulo] = conf[tipo];
+            let filasExtra = (tipo === 'visita' || tipo === 'comida') ?
+                `<tr><td class="col-label">⏳</td><td colspan="2"><input type="text" placeholder="ej: 1h 30m" onblur="calcularSalida(this)" style="width:100%; border:none; background:transparent; text-align:right; font-weight:500; font-size:16px;"></td></tr>
+                 <tr><td class="col-label">🏁</td><td colspan="2" style="text-align:right"><input type="time" onchange="recalcularSiguiente(this)"></td></tr>` : "";
+
+            const html = `<div class="bloque ${clase}">
+            <div class="controls-left">
+                <input type="checkbox" class="check-completar" onclick="toggleCompletado(this)">
+                <button class="btn-ctrl" onclick="moveUp(this)">▲</button>
+                <button class="btn-ctrl" onclick="moveDown(this)">▼</button>
+                <button class="btn-ctrl" style="color:red" onclick="borrarEvento(this); saveAll();">✕</button>
+            </div>
+            <div class="time-sidebar">
+                <input type="time" onchange="actualizarCita(this)" onclick="event.stopPropagation()">
+                <span class="llegada-estimada-sidebar" style="display:none" onclick="this.previousElementSibling.showPicker(); event.stopPropagation();"></span>
+            </div>
+            <table oninput="saveAll()">
+                <tbody><tr class="header-evento-color" onclick="toggleEvento(this)"><td colspan="2" onclick="event.stopPropagation()"><span contenteditable="true" onblur="formatearTexto(this); saveAll()">${titulo}</span><span class="tiempo-libre"></span></td><td style="text-align:right"><button class="btn-toggle-evento" onclick="event.stopPropagation(); toggleEvento(this.closest('tr'));">▼</button></td></tr>
+                <tr><td class="col-label">📍</td><td contenteditable="true" class="col-data" onblur="calcularDistancia(this)">...</td><td style="text-align:right; width:25px;" class="btn-mapa" data-url="" onclick="gestionarMapa(this)">📍</td></tr>
+                <tr class="fila-trayecto"><td class="col-label">🚗</td><td colspan="2" class="col-data"></td></tr>
+                <tr><td class="col-label">📝</td><td colspan="2" class="col-data">
+                    <div class="notas-container"></div>
+                    <button class="action-btn" style="background:#8e8e93; width:60px; height:20px; font-size:10px; margin-top:4px;" onclick="addNota(this)">+ NOTA</button>
+                </td></tr>
+                ${filasExtra}
+            </tbody></table>
+        </div>`;
+            lista.insertAdjacentHTML('beforeend', html);
+            saveAll();
+        }
+
+        function addNota(btn, texto = "", coste = "") {
+            const container = btn.previousElementSibling;
+            const html = `<div class="nota-item">
+            <div class="nota-texto" contenteditable="true" onblur="linkify(this)">${texto}</div>
+            <input type="number" class="nota-coste" step="0.01" placeholder="0" value="${coste}" oninput="actualizarCostes()" max="999">
+            <span class="euro-symbol">€</span>
+            <span class="btn-del-nota" onclick="this.parentElement.remove();actualizarCostes();">✕</span>
+        </div>`;
+            container.insertAdjacentHTML('beforeend', html);
+            actualizarCostes();
+        }
+
+        async function fetchClimaGlobal(el) {
+            const container = el.closest('.dia-container');
+            const nombre = container.querySelector('.nombre-dia-personalizado').innerText.trim();
+            const fechaStr = container.querySelector('h3').innerText.trim();
+            const wrapper = container.querySelector('.clima-wrapper');
+            if (!nombre || nombre === "Destino...") return;
+            try {
+                const geo = await (await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(nombre)}&count=1&language=es&format=json`)).json();
+                if (geo.results && geo.results.length > 0) {
+                    const { latitude, longitude } = geo.results[0];
+                    let url = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&daily=weathercode,temperature_2m_max,temperature_2m_min&timezone=auto`;
+                    if (/^\d{4}-\d{2}-\d{2}$/.test(fechaStr)) url += `&start_date=${fechaStr}&end_date=${fechaStr}`;
+                    const w = await (await fetch(url)).json();
+                    if (w.daily) wrapper.innerHTML = `<span class="clima-icon">${weatherIcons[w.daily.weathercode[0]] || "🌡️"}</span><div class="temp-row"><span style="color:#ff453a">${Math.round(w.daily.temperature_2m_max[0])}°</span><span style="color:#0a84ff">${Math.round(w.daily.temperature_2m_min[0])}°</span></div>`;
+                    saveAll();
+                } else {
+                    wrapper.innerHTML = `<span style="font-size:10px; color:#ff453a">Ciudad no encontrada</span>`;
+                }
+            } catch (e) { wrapper.innerHTML = "Err"; }
+        }
+
+        async function calcularDistancia(elLugar) {
+            const bloqueActual = elLugar.closest('.bloque');
+            const bloqueAnterior = bloqueActual.previousElementSibling;
+            const filaTrayecto = bloqueActual.querySelector('.fila-trayecto .col-data');
+
+            if (!bloqueAnterior) {
+                filaTrayecto.innerText = "";
+                return;
+            }
+
+            const lugarActual = elLugar.innerText.trim();
+            const lugarAnterior = bloqueAnterior.querySelector('td[onblur*="calcularDistancia"]').innerText.trim();
+
+            if (!lugarActual || lugarActual === "..." || !lugarAnterior || lugarAnterior === "...") {
+                filaTrayecto.innerText = "";
+                return;
+            }
+
+            // Obtener el contexto del destino (ciudad) del día para búsquedas precisas en calles
+            const nombreDia = elLugar.closest('.dia-container').querySelector('.nombre-dia-personalizado').innerText.trim();
+            const contexto = (nombreDia && nombreDia !== 'Destino...') ? `, ${nombreDia}` : '';
+
+            try {
+                filaTrayecto.innerText = "Calculando...";
+
+                const geocode = async (query) => {
+                    if (geocodeCache.has(query)) return geocodeCache.get(query);
+
+                    const search = async (q) => {
+                        console.log("Nominatim search:", q);
+                        try {
+                            const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=1`;
+                            const resp = await throttledFetch(url);
+                            if (!resp.ok) {
+                                console.error("Nominatim error status:", resp.status);
+                                return null;
+                            }
+                            const data = await resp.json();
+                            return (data && data.length > 0) ? { lat: data[0].lat, lon: data[0].lon } : null;
+                        } catch (e) {
+                            console.error("Nominatim fetch exception:", e);
+                            return null;
+                        }
+                    };
+
+                    // 1. Intento con contexto del día (ej: "Calle Mayor, Madrid")
+                    let res = null;
+                    const queryLower = query.toLowerCase();
+                    const nombreDiaLower = nombreDia.toLowerCase();
+
+                    if (nombreDia && nombreDia !== 'Destino...' && !queryLower.includes(nombreDiaLower)) {
+                        res = await search(query + contexto);
+                    }
+
+                    if (!res) {
+                        // 2. Intento sin contexto (ej: "Frías de Albarracín")
+                        res = await search(query);
+                    }
+
+                    if (res) {
+                        geocodeCache.set(query, res);
+                        return res;
+                    }
+
+                    throw new Error(`No se encontró la ubicación: "${query}"`);
+                };
+
+                const pos1 = await geocode(lugarAnterior);
+                const pos2 = await geocode(lugarActual);
+
+                const route = await (await fetch(`https://router.project-osrm.org/route/v1/driving/${pos1.lon},${pos1.lat};${pos2.lon},${pos2.lat}?overview=false`)).json();
+
+                if (!route.routes || route.routes.length === 0) throw new Error("No se pudo calcular la ruta");
+
+                const distancia = route.routes[0].distance; // en metros
+                const duracion = route.routes[0].duration; // en segundos
+
+                // Muestra la distancia (en metros si es menos de 1km para precisión en calles)
+                filaTrayecto.innerText = distancia < 1000 ? Math.round(distancia) + " m" : (distancia / 1000).toFixed(1) + " km";
+
+                // Calcula y ajusta la hora
+                const inputHoraSalidaAnterior = bloqueAnterior.querySelector('input[onchange="recalcularSiguiente(this)"]');
+                const horaSalidaAnterior = (inputHoraSalidaAnterior && inputHoraSalidaAnterior.value) ? inputHoraSalidaAnterior.value : bloqueAnterior.querySelector('.time-sidebar input[type="time"]')?.value;
+
+                if (horaSalidaAnterior) {
+                    const [horas, minutos] = horaSalidaAnterior.split(':').map(Number);
+                    const fechaSalida = new Date();
+                    fechaSalida.setHours(horas, minutos, 0, 0);
+                    fechaSalida.setSeconds(fechaSalida.getSeconds() + duracion);
+
+                    const llegadaEstimadaMs = fechaSalida.getTime();
+                    const nuevaHoraLlegada = fechaSalida.toTimeString().slice(0, 5);
+                    const inputHoraActual = bloqueActual.querySelector('.time-sidebar input[type="time"]');
+                    const spanTiempoLibre = bloqueActual.querySelector('.tiempo-libre');
+
+                    // Guardamos la llegada estimada para cálculos aunque no haya cita
+                    bloqueActual.dataset.llegadaEstimada = nuevaHoraLlegada;
+                    const spanLlegadaSidebar = bloqueActual.querySelector('.llegada-estimada-sidebar');
+                    if (spanLlegadaSidebar) spanLlegadaSidebar.innerText = nuevaHoraLlegada;
+
+                    if (inputHoraActual) {
+                        // Si no hay cita puesta, mostramos la estimada en el span y ocultamos el input
+                        if (!inputHoraActual.value) {
+                            inputHoraActual.style.display = 'none';
+                            if (spanLlegadaSidebar) spanLlegadaSidebar.style.display = 'block';
+                        } else {
+                            inputHoraActual.style.display = 'block';
+                            if (spanLlegadaSidebar) spanLlegadaSidebar.style.display = 'none';
+                        }
+
+                        // Calcular tiempo libre comparando minutos totales
+                        const valorHoraParaCalculo = inputHoraActual.value || nuevaHoraLlegada;
+                        if (valorHoraParaCalculo && spanTiempoLibre) {
+                            const [hCita, mCita] = valorHoraParaCalculo.split(':').map(Number);
+                            const fechaCita = new Date(fechaSalida);
+                            fechaCita.setHours(hCita, mCita, 0, 0);
+
+                            const minsLlegada = Math.floor(fechaSalida.getTime() / 60000);
+                            const minsCita = Math.floor(fechaCita.getTime() / 60000);
+                            const diffMins = minsCita - minsLlegada;
+
+                            if (diffMins > 0) {
+                                const h = Math.floor(diffMins / 60);
+                                const m = diffMins % 60;
+                                spanTiempoLibre.innerText = `(Libre: ${h > 0 ? h + 'h ' : ''}${m}m)`;
+                                spanTiempoLibre.style.background = "#34c759"; // Verde para libre
+                            } else if (diffMins < 0) {
+                                spanTiempoLibre.innerText = `(Retraso: ${Math.abs(diffMins)}m)`;
+                                spanTiempoLibre.style.background = "#ff3b30"; // Rojo para retraso
+                            } else {
+                                spanTiempoLibre.innerText = "";
+                            }
+                        }
+
+                        calcularSalida(inputHoraActual);
+                    }
+                }
+
+                saveAll();
+            } catch (e) {
+                filaTrayecto.innerText = e.message.includes("No se encontró") ? "No encontrado" : "Error";
+                console.error("Error en calcularDistancia:", e);
+            }
+        }
+
+        async function recalcularDiaCompleto(el) {
+            const diaContainer = el.closest('.dia-container');
+            if (!diaContainer) return;
+
+            // Evita que se ejecute si ya está calculando
+            if (diaContainer.dataset.calculando === 'true') return;
+
+            const lugares = diaContainer.querySelectorAll('.eventos-lista .bloque td[onblur*="calcularDistancia"]');
+            if (lugares.length === 0) return;
+
+            diaContainer.dataset.calculando = 'true';
+
+            // Si el elemento es un botón, mostramos feedback visual en él
+            const originalHTML = el.tagName === 'BUTTON' ? el.innerHTML : null;
+            if (originalHTML) el.innerHTML = '...';
+
+            try {
+                for (const lugar of lugares) {
+                    await calcularDistancia(lugar);
+                    // Ya no hace falta la pausa aquí porque throttledFetch se encarga de Nominatim
+                }
+            } catch (err) {
+                console.error("Error en recalcularDiaCompleto:", err);
+            } finally {
+                delete diaContainer.dataset.calculando;
+                if (originalHTML) el.innerHTML = originalHTML;
+                saveAll();
+            }
+        }
+
+        function parseDuracion(str) {
+            if (!str) return 0;
+            let totalMinutos = 0;
+
+            // Soporte para formato "1:30"
+            if (/^\d+:\d+$/.test(str)) {
+                const [h, m] = str.split(':').map(Number);
+                totalMinutos = (h * 60) + m;
+            }
+            // Soporte para formato "1.5h" o "1,5h"
+            else if (/^(\d+([.,]\d+)?)\s*h$/.test(str)) {
+                const h = parseFloat(str.replace(',', '.'));
+                totalMinutos = Math.round(h * 60);
+            }
+            else {
+                const horasMatch = str.match(/(\d+)\s*h/);
+                const minMatch = str.match(/(\d+)\s*m/);
+                if (horasMatch) totalMinutos += parseInt(horasMatch[1], 10) * 60;
+                if (minMatch) totalMinutos += parseInt(minMatch[1], 10);
+                if (!horasMatch && !minMatch && /^\d+$/.test(str)) totalMinutos = parseInt(str, 10);
+            }
+
+            return totalMinutos;
+        }
+
+        function calcularSalida(el) {
+            const bloque = el.closest('.bloque');
+            const inputLlegada = bloque.querySelector('.time-sidebar input[type="time"]');
+            const inputDuracion = bloque.querySelector('input[onblur="calcularSalida(this)"]');
+            const inputSalida = bloque.querySelector('input[onchange="recalcularSiguiente(this)"]');
+
+            const valorLlegada = (inputLlegada && inputLlegada.value) ? inputLlegada.value : bloque.dataset.llegadaEstimada;
+
+            if (!valorLlegada || !inputDuracion || !inputSalida) return;
+
+            const duracionMinutos = parseDuracion(inputDuracion.value);
+
+            const [horas, minutos] = valorLlegada.split(':').map(Number);
+            const fechaLlegada = new Date();
+            fechaLlegada.setHours(horas, minutos, 0, 0);
+
+            // Si hay duración, la suma. Si no, la hora de salida será la de llegada.
+            fechaLlegada.setMinutes(fechaLlegada.getMinutes() + duracionMinutos);
+
+            inputSalida.value = fechaLlegada.toTimeString().slice(0, 5);
+            recalcularSiguiente(inputSalida);
+            saveAll();
+        }
+
+        function recalcularSiguiente(elSalida) {
+            const diaContainer = elSalida.closest('.dia-container');
+            if (diaContainer && diaContainer.dataset.calculando === 'true') return;
+
+            const bloqueActual = elSalida.closest('.bloque');
+            const bloqueSiguiente = bloqueActual.nextElementSibling;
+            const lugarSiguiente = bloqueSiguiente?.querySelector('td[onblur*="calcularDistancia"]');
+            if (lugarSiguiente) calcularDistancia(lugarSiguiente);
+            saveAll();
+        }
+
+        function gestionarMapa(el) {
+            let url = el.dataset.url || "";
+            if (!url) {
+                let n = prompt("URL Maps:");
+                if (n) { el.dataset.url = n; el.setAttribute('data-url', n); el.classList.add('con-url'); saveAll(); }
+            } else {
+                if (confirm("¿Abrir?")) window.open(url, "_blank");
+                else { let n = prompt("Editar:", url); if (n !== null) { el.dataset.url = n; el.setAttribute('data-url', n); n === "" ? el.classList.remove('con-url') : el.classList.add('con-url'); saveAll(); } }
+            }
+        }
+
+        function toggleEvento(headerRow) {
+            // Evita que se contraiga si el clic fue en un elemento editable
+            if (event.target.hasAttribute('contenteditable') || event.target.tagName === 'INPUT') {
+                return;
+            }
+            headerRow.closest('.bloque').classList.toggle('contraido');
+            saveAll();
+        }
+        function toggleDia(header) { if (!event.target.hasAttribute('contenteditable') && event.target.tagName !== 'BUTTON') header.nextElementSibling.classList.toggle('abierto'); }
+        function toggleCompletado(check) { check.closest('.bloque').classList.toggle('completado', check.checked); saveAll(); }
+        function moverDia(btn, dir) { const dia = btn.closest('.dia-container'); dir === 'arriba' ? dia.previousElementSibling?.before(dia) : dia.nextElementSibling?.after(dia); saveAll(); }
+        function moveUp(btn) {
+            const bloque = btn.closest('.bloque');
+            if (bloque.previousElementSibling) {
+                bloque.previousElementSibling.before(bloque);
+                recalcularDiaCompleto(bloque);
+            }
+        }
+        function moveDown(btn) {
+            const bloque = btn.closest('.bloque');
+            const bloqueSiguiente = bloque.nextElementSibling;
+            if (bloqueSiguiente) {
+                bloqueSiguiente.after(bloque);
+                recalcularDiaCompleto(bloque);
+            }
+        }
+        function limpiarTodo() { if (confirm("¿Borrar?")) { localStorage.clear(); location.reload(); } }
+
+        function borrarEvento(btn) {
+            const bloque = btn.closest('.bloque');
+            const dia = bloque.closest('.dia-container');
+            bloque.remove();
+            recalcularDiaCompleto(dia);
+            saveAll();
+        }
+        function actualizarEfectos() {
+            document.querySelectorAll('.check-completar').forEach(c => c.checked = c.hasAttribute('checked'));
+            document.querySelectorAll('input[type="time"]').forEach(i => i.value = i.getAttribute('value'));
+            document.querySelectorAll('.btn-mapa').forEach(pin => { if (pin.getAttribute('data-url')) pin.classList.add('con-url'); });
+            document.querySelectorAll('input[onblur="calcularSalida(this)"]').forEach(i => i.value = i.getAttribute('value') || '');
+            actualizarEstructuraUI();
+        }
+
+        function actualizarEstructuraUI() {
+            try {
+                // Reemplazar textos por iconos en etiquetas de columna (Migración)
+                document.querySelectorAll('.col-label').forEach(label => {
+                    const text = label.innerText.trim().toLowerCase();
+                    if (text === 'lugar') label.innerText = '📍';
+                    else if (text === 'trayecto') label.innerText = '🚗';
+                    else if (text === 'notas') label.innerText = '📝';
+                    else if (text === 'duración') label.innerText = '⏳';
+                    else if (text === 'salida') label.innerText = '🏁';
+                });
+
+                // Asegurar el tag de coste total al final si no existe
+                if (!document.getElementById('total-gastos-viaje')) {
+                    const container = document.querySelector('.container');
+                    container.insertAdjacentHTML('beforeend', '<div id="total-gastos-viaje" style="text-align: center; margin-top: 10px; font-weight: 900; font-size: 18px; color: #1c1c1e; padding: 10px; border-top: 2px solid #d1d1d6;">TOTAL GASTOS: 0.00 €</div>');
+                }
+
+                document.querySelectorAll('.dia-container').forEach(dia => {
+                    const controls = dia.querySelector('.dia-controls');
+                    if (controls && !controls.innerHTML.includes('recalcularDiaCompleto')) {
+                        controls.style.gridTemplateColumns = 'repeat(5, 1fr)';
+                        controls.insertAdjacentHTML('beforeend', `<button class="action-btn" style="background:#5ac8fa" onclick="recalcularDiaCompleto(this)">🔄</button>`);
+                    }
+
+                    // Eliminar tag de coste al día si existe
+                    const tag = dia.querySelector('.dia-coste-tag');
+                    if (tag) tag.remove();
+                    const flexCont = dia.querySelector('.dia-coste-flex-cont');
+                    if (flexCont) {
+                        const h3 = flexCont.querySelector('h3');
+                        if (h3) flexCont.before(h3);
+                        flexCont.remove();
+                    }
+                });
+
+                // Migración de notas (asegurar campo coste y onclick)
+                document.querySelectorAll('.nota-item').forEach(nota => {
+                    if (!nota.querySelector('.nota-coste')) {
+                        const delBtn = nota.querySelector('.btn-del-nota');
+                        const htmlCoste = `<input type="number" class="nota-coste" step="0.01" placeholder="0" oninput="actualizarCostes()" max="999"><span class="euro-symbol">€</span>`;
+                        if (delBtn) {
+                            delBtn.insertAdjacentHTML('beforebegin', htmlCoste);
+                            delBtn.setAttribute('onclick', 'this.parentElement.remove();actualizarCostes();');
+                        }
+                    }
+                });
+
+                // Migración del cajón del tiempo
+                document.querySelectorAll('.bloque').forEach(bloque => {
+                    if (!bloque.querySelector('.time-sidebar')) {
+                        const headerInput = bloque.querySelector('.header-evento-color input[type="time"]');
+                        const sidebar = document.createElement('div');
+                        sidebar.className = 'time-sidebar';
+                        if (headerInput) {
+                            sidebar.appendChild(headerInput);
+                            headerInput.setAttribute('onchange', 'actualizarCita(this)');
+                        } else {
+                            sidebar.innerHTML = '<input type="time" onchange="actualizarCita(this)" onclick="event.stopPropagation()">';
+                        }
+                        const controlsLeft = bloque.querySelector('.controls-left');
+                        if (controlsLeft) {
+                            controlsLeft.after(sidebar);
+                        } else {
+                            bloque.prepend(sidebar);
+                        }
+                    }
+
+                    // Asegurar el span de llegada estimada
+                    if (!bloque.querySelector('.llegada-estimada-sidebar')) {
+                        const sidebar = bloque.querySelector('.time-sidebar');
+                        if (sidebar) {
+                            sidebar.insertAdjacentHTML('beforeend', '<span class="llegada-estimada-sidebar" style="display:none" onclick="this.previousElementSibling.showPicker(); event.stopPropagation();"></span>');
+                        }
+                    }
+
+                    // Asegurar visibilidad inicial correcta
+                    const input = bloque.querySelector('.time-sidebar input[type="time"]');
+                    const span = bloque.querySelector('.llegada-estimada-sidebar');
+                    if (input && span) {
+                        if (!input.value) {
+                            input.style.display = 'none';
+                            span.style.display = 'block';
+                            if (bloque.dataset.llegadaEstimada) span.innerText = bloque.dataset.llegadaEstimada;
+                        } else {
+                            input.style.display = 'block';
+                            span.style.display = 'none';
+                        }
+                    }
+                });
+
+                // Añade el botón de toggle si no existe en eventos antiguos
+                document.querySelectorAll('.header-evento-color').forEach(header => {
+                    if (!header.querySelector('.btn-toggle-evento')) {
+                        const timeCell = header.querySelector('td[style="text-align:right"]');
+                        if (timeCell) {
+                            timeCell.insertAdjacentHTML('beforeend', `<button class="btn-toggle-evento" onclick="event.stopPropagation(); toggleEvento(this.closest('tr'));">▼</button>`);
+                        }
+                    }
+
+                    // Asegurar span de tiempo libre y estructura de título
+                    const tdTitulo = header.querySelector('td[colspan="2"]');
+                    if (tdTitulo && !tdTitulo.querySelector('.tiempo-libre')) {
+                        const textoActual = tdTitulo.innerText;
+                        tdTitulo.innerHTML = `<span contenteditable="true" onblur="formatearTexto(this); saveAll()">${textoActual}</span><span class="tiempo-libre"></span>`;
+                        tdTitulo.removeAttribute('contenteditable');
+                        tdTitulo.onclick = (e) => e.stopPropagation();
+                    }
+                });
+
+                // Asegurar que todos los elementos editables tengan el formateo de texto (excepto notas)
+                document.querySelectorAll('[contenteditable="true"]:not(.nota-texto)').forEach(el => {
+                    const currentBlur = el.getAttribute('onblur') || "";
+                    if (!currentBlur.includes('formatearTexto')) {
+                        if (currentBlur) {
+                            el.setAttribute('onblur', `formatearTexto(this); ${currentBlur}`);
+                        } else {
+                            el.setAttribute('onblur', "formatearTexto(this); saveAll()");
+                        }
+                    }
+                });
+            } catch (e) {
+                console.error("Error en migración:", e);
+            }
+            actualizarCostes();
+        }
+
+        function recalcularDistanciasAfectadas(bloqueMovido, bloqueAfectado) {
+            const lugarMovido = bloqueMovido.querySelector('td[onblur*="calcularDistancia"]');
+            const lugarAfectado = bloqueAfectado?.querySelector('td[onblur*="calcularDistancia"]');
+            if (lugarMovido) calcularDistancia(lugarMovido);
+            if (lugarAfectado) calcularDistancia(lugarAfectado);
+            saveAll();
+        }
+    </script>
+</body>
+
+</html>

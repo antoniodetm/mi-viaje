@@ -7,6 +7,7 @@
     <title>Imprimir Itinerario de Viaje (Firebase)</title>
     <!-- SDK de Firebase -->
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
     <style>
         :root {
@@ -765,11 +766,18 @@
         };
 
         let database = null;
+        let auth = null;
         let itinerariosCargados = {};
 
         try {
             firebase.initializeApp(firebaseConfig);
             database = firebase.database();
+            auth = firebase.auth();
+
+            // Autenticación anónima para cumplir con las reglas de seguridad de Firebase
+            auth.signInAnonymously().catch((error) => {
+                console.error("Error en autenticación anónima:", error.message);
+            });
         } catch (e) {
             console.error("Error al inicializar Firebase:", e);
         }
