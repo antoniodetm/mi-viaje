@@ -575,6 +575,7 @@
             document.querySelectorAll('input[type="checkbox"]').forEach(i => i.checked ? i.setAttribute('checked', 'checked') : i.removeAttribute('checked'));
             document.querySelectorAll('input[onblur="calcularSalida(this)"]').forEach(i => i.setAttribute('value', i.value));
             document.querySelectorAll('.nota-coste').forEach(i => i.setAttribute('value', i.value));
+            document.querySelectorAll('.velocidad-media').forEach(i => i.setAttribute('value', i.value));
             localStorage.setItem('miItinerario', document.getElementById('itinerario').innerHTML);
             localStorage.setItem('tituloViaje', document.getElementById('titulo-viaje').innerText);
         }
@@ -787,7 +788,10 @@
             <table oninput="saveAll()">
                 <tbody><tr class="header-evento-color" onclick="toggleEvento(this)"><td colspan="2" onclick="event.stopPropagation()"><span contenteditable="true" onblur="formatearTexto(this); saveAll()">${titulo}</span><span class="tiempo-libre"></span></td><td style="text-align:right"><button class="btn-toggle-evento" onclick="event.stopPropagation(); toggleEvento(this.closest('tr'));">▼</button></td></tr>
                 <tr><td class="col-label">📍</td><td contenteditable="true" class="col-data" onblur="calcularDistancia(this)">...</td><td style="text-align:right; width:25px;" class="btn-mapa" data-url="" onclick="gestionarMapa(this)">📍</td></tr>
-                <tr class="fila-trayecto"><td class="col-label">🚗</td><td colspan="2" class="col-data"></td></tr>
+                <tr class="fila-trayecto"><td class="col-label">🚗</td><td colspan="2" class="col-data">
+                    <span class="distancia-texto"></span>
+                    <input type="number" class="velocidad-media" placeholder="km/h" title="Velocidad media" style="width:45px; border:1px solid #ddd; border-radius:4px; font-size:11px; text-align:center; margin-left:8px;" onblur="calcularDistancia(this.closest('.bloque').querySelector('td[onblur*=\'calcularDistancia\']'))">
+                </td></tr>
                 <tr><td class="col-label">📝</td><td colspan="2" class="col-data">
                     <div class="notas-container"></div>
                     <button class="action-btn" style="background:#8e8e93; width:60px; height:20px; font-size:10px; margin-top:4px;" onclick="addNota(this)">+ NOTA</button>
@@ -835,10 +839,11 @@
         async function calcularDistancia(elLugar) {
             const bloqueActual = elLugar.closest('.bloque');
             const bloqueAnterior = bloqueActual.previousElementSibling;
-            const filaTrayecto = bloqueActual.querySelector('.fila-trayecto .col-data');
+            const spanDistancia = bloqueActual.querySelector('.fila-trayecto .distancia-texto');
+            const inputVelocidad = bloqueActual.querySelector('.velocidad-media');
 
             if (!bloqueAnterior) {
-                filaTrayecto.innerText = "";
+                if (spanDistancia) spanDistancia.innerText = "";
                 return;
             }
 
@@ -846,7 +851,7 @@
             const lugarAnterior = bloqueAnterior.querySelector('td[onblur*="calcularDistancia"]').innerText.trim();
 
             if (!lugarActual || lugarActual === "..." || !lugarAnterior || lugarAnterior === "...") {
-                filaTrayecto.innerText = "";
+                if (spanDistancia) spanDistancia.innerText = "";
                 return;
             }
 
@@ -855,7 +860,7 @@
             const contexto = (nombreDia && nombreDia !== 'Destino...') ? `, ${nombreDia}` : '';
 
             try {
-                filaTrayecto.innerText = "Calculando...";
+                if (spanDistancia) spanDistancia.innerText = "Calculando...";
 
                 const geocode = async (query) => {
                     if (geocodeCache.has(query)) return geocodeCache.get(query);
@@ -906,11 +911,20 @@
 
                 if (!route.routes || route.routes.length === 0) throw new Error("No se pudo calcular la ruta");
 
-                const distancia = route.routes[0].distance; // en metros
-                const duracion = route.routes[0].duration; // en segundos
+                const distanciaMetros = route.routes[0].distance; // en metros
+                let duracionSegundos = route.routes[0].duration; // en segundos
+
+                // Si el usuario ha puesto una velocidad media, recalculamos la duración
+                const velocidadKmh = parseFloat(inputVelocidad?.value);
+                if (velocidadKmh > 0) {
+                    const distanciaKm = distanciaMetros / 1000;
+                    duracionSegundos = (distanciaKm / velocidadKmh) * 3600;
+                }
 
                 // Muestra la distancia (en metros si es menos de 1km para precisión en calles)
-                filaTrayecto.innerText = distancia < 1000 ? Math.round(distancia) + " m" : (distancia / 1000).toFixed(1) + " km";
+                if (spanDistancia) {
+                    spanDistancia.innerText = distanciaMetros < 1000 ? Math.round(distanciaMetros) + " m" : (distanciaMetros / 1000).toFixed(1) + " km";
+                }
 
                 // Calcula y ajusta la hora
                 const inputHoraSalidaAnterior = bloqueAnterior.querySelector('input[onchange="recalcularSiguiente(this)"]');
@@ -920,7 +934,7 @@
                     const [horas, minutos] = horaSalidaAnterior.split(':').map(Number);
                     const fechaSalida = new Date();
                     fechaSalida.setHours(horas, minutos, 0, 0);
-                    fechaSalida.setSeconds(fechaSalida.getSeconds() + duracion);
+                    fechaSalida.setSeconds(fechaSalida.getSeconds() + duracionSegundos);
 
                     const llegadaEstimadaMs = fechaSalida.getTime();
                     const nuevaHoraLlegada = fechaSalida.toTimeString().slice(0, 5);
@@ -972,7 +986,7 @@
 
                 saveAll();
             } catch (e) {
-                filaTrayecto.innerText = e.message.includes("No se encontró") ? "No encontrado" : "Error";
+                if (spanDistancia) spanDistancia.innerText = e.message.includes("No se encontró") ? "No encontrado" : "Error";
                 console.error("Error en calcularDistancia:", e);
             }
         }
@@ -1240,6 +1254,15 @@
                         } else {
                             el.setAttribute('onblur', "formatearTexto(this); saveAll()");
                         }
+                    }
+                });
+
+                // Migración de la fila de trayecto (distancia + velocidad)
+                document.querySelectorAll('.fila-trayecto .col-data').forEach(td => {
+                    if (!td.querySelector('.distancia-texto')) {
+                        const currentText = td.innerText;
+                        td.innerHTML = `<span class="distancia-texto">${currentText}</span>
+                        <input type="number" class="velocidad-media" placeholder="km/h" title="Velocidad media" style="width:45px; border:1px solid #ddd; border-radius:4px; font-size:11px; text-align:center; margin-left:8px;" onblur="calcularDistancia(this.closest('.bloque').querySelector('td[onblur*=\'calcularDistancia\']'))">`;
                     }
                 });
             } catch (e) {
