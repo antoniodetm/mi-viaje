@@ -735,19 +735,43 @@
             }
         }
 
+        function actualizarFechasItinerario() {
+            const dias = document.querySelectorAll('.dia-container');
+            if (dias.length === 0) return;
+
+            const firstDateH3 = dias[0].querySelector('.header-info-wrapper h3');
+            const firstDateStr = firstDateH3.innerText.trim();
+            let startDate = new Date(firstDateStr);
+
+            if (isNaN(startDate.getTime())) return;
+
+            dias.forEach((dia, index) => {
+                const h3 = dia.querySelector('.header-info-wrapper h3');
+                const currentDate = new Date(startDate);
+                currentDate.setDate(startDate.getDate() + index);
+                const dateStr = currentDate.toISOString().split('T')[0];
+
+                if (h3.innerText.trim() !== dateStr) {
+                    h3.innerText = dateStr;
+                    fetchClimaGlobal(h3.nextElementSibling);
+                }
+            });
+            saveAll();
+        }
+
         function addDia() {
             let fecha = new Date().toISOString().split('T')[0];
             const id = "dia-" + Date.now();
             const html = `<div class="dia-container" id="${id}">
             <div class="bloque-dia-header" onclick="toggleDia(this)">
                 <div class="header-info-wrapper">
-                    <h3 contenteditable="true" onclick="event.stopPropagation()" onblur="formatearTexto(this); fetchClimaGlobal(this.nextElementSibling); recalcularDiaCompleto(this)">${fecha}</h3>
+                    <h3 contenteditable="true" onclick="event.stopPropagation()" onblur="formatearTexto(this); fetchClimaGlobal(this.nextElementSibling); recalcularDiaCompleto(this); actualizarFechasItinerario();">${fecha}</h3>
                     <div class="nombre-dia-personalizado" contenteditable="true" onblur="formatearTexto(this); fetchClimaGlobal(this); recalcularDiaCompleto(this)" onclick="event.stopPropagation()">Destino...</div>
                 </div>
                 <div class="clima-wrapper"></div>
                 <div class="dia-management-block">
                     <button class="btn-dia-order" onclick="event.stopPropagation(); moverDia(this, 'arriba')">▲</button>
-                    <span class="btn-dia-delete" onclick="event.stopPropagation(); if(confirm('¿Borrar?')){this.closest('.dia-container').remove();actualizarCostes();}">✕</span>
+                    <span class="btn-dia-delete" onclick="event.stopPropagation(); if(confirm('¿Borrar?')){this.closest('.dia-container').remove();actualizarCostes(); actualizarFechasItinerario();}">✕</span>
                     <button class="btn-dia-order" onclick="event.stopPropagation(); moverDia(this, 'abajo')">▼</button>
                 </div>
             </div>
@@ -763,6 +787,7 @@
             </div>
         </div>`;
             document.getElementById('itinerario').insertAdjacentHTML('beforeend', html);
+            actualizarFechasItinerario();
             saveAll();
         }
 
@@ -1102,7 +1127,7 @@
         }
         function toggleDia(header) { if (!event.target.hasAttribute('contenteditable') && event.target.tagName !== 'BUTTON') header.nextElementSibling.classList.toggle('abierto'); }
         function toggleCompletado(check) { check.closest('.bloque').classList.toggle('completado', check.checked); saveAll(); }
-        function moverDia(btn, dir) { const dia = btn.closest('.dia-container'); dir === 'arriba' ? dia.previousElementSibling?.before(dia) : dia.nextElementSibling?.after(dia); saveAll(); }
+        function moverDia(btn, dir) { const dia = btn.closest('.dia-container'); dir === 'arriba' ? dia.previousElementSibling?.before(dia) : dia.nextElementSibling?.after(dia); actualizarFechasItinerario(); saveAll(); }
         function moveUp(btn) {
             const bloque = btn.closest('.bloque');
             if (bloque.previousElementSibling) {
@@ -1168,6 +1193,22 @@
                         const h3 = flexCont.querySelector('h3');
                         if (h3) flexCont.before(h3);
                         flexCont.remove();
+                    }
+
+                    // Asegurar que el h3 de fecha tenga actualizarFechasItinerario
+                    const h3Fecha = dia.querySelector('.header-info-wrapper h3');
+                    if (h3Fecha) {
+                        const currentBlur = h3Fecha.getAttribute('onblur') || "";
+                        if (!currentBlur.includes('actualizarFechasItinerario')) {
+                            h3Fecha.setAttribute('onblur', currentBlur + "; actualizarFechasItinerario();");
+                        }
+                    }
+
+                    // Asegurar que el botón de borrar día tenga actualizarFechasItinerario
+                    const btnDelDia = dia.querySelector('.btn-dia-delete');
+                    if (btnDelDia && !btnDelDia.getAttribute('onclick').includes('actualizarFechasItinerario')) {
+                        const currentClick = btnDelDia.getAttribute('onclick');
+                        btnDelDia.setAttribute('onclick', currentClick.replace('actualizarCostes();', 'actualizarCostes(); actualizarFechasItinerario();'));
                     }
                 });
 
