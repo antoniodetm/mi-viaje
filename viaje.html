@@ -509,7 +509,9 @@
         // Autenticación anónima para cumplir con las reglas de seguridad de Firebase
         auth.signInAnonymously().catch((error) => {
             console.error("Error en autenticación anónima:", error.message);
-            alert("Error de autenticación en Firebase: " + error.message + ". Comprueba tu API Key.");
+            if (error.code === 'auth/operation-not-allowed') {
+                console.error("Debes habilitar el proveedor 'Anónimo' en la sección Authentication > Sign-in method de la consola de Firebase.");
+            }
         });
     </script>
 </head>
@@ -605,13 +607,19 @@
             if (elLugar) calcularDistancia(elLugar);
         }
 
-        function guardarEnFirebase() {
+        async function guardarEnFirebase() {
             saveAll(); // Primero guarda el estado actual en el DOM
-            const user = auth.currentUser;
+            let user = auth.currentUser;
 
             if (!user) {
-                alert("No se ha podido autenticar con Firebase. Inténtalo de nuevo.");
-                return;
+                try {
+                    const result = await auth.signInAnonymously();
+                    user = result.user;
+                } catch (error) {
+                    console.error("Error al intentar autenticar:", error);
+                    alert("No se ha podido autenticar con Firebase. Asegúrate de tener habilitado el 'Inicio de sesión anónimo' en la consola de Firebase.\n\nError: " + error.message);
+                    return;
+                }
             }
 
             const itinerarioId = prompt("Introduce un nombre para guardar el itinerario en la nube:", document.getElementById('titulo-viaje').innerText.trim().toLowerCase().replace(/\s+/g, '-'));
@@ -740,19 +748,23 @@
             if (dias.length === 0) return;
 
             const firstDateH3 = dias[0].querySelector('.header-info-wrapper h3');
-            const firstDateStr = firstDateH3.innerText.trim();
+            const firstDateStr = firstDateH3.innerText.trim().split(' ')[0];
             let startDate = new Date(firstDateStr);
 
             if (isNaN(startDate.getTime())) return;
+
+            const diasSemana = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
 
             dias.forEach((dia, index) => {
                 const h3 = dia.querySelector('.header-info-wrapper h3');
                 const currentDate = new Date(startDate);
                 currentDate.setDate(startDate.getDate() + index);
                 const dateStr = currentDate.toISOString().split('T')[0];
+                const dayName = diasSemana[currentDate.getDay()];
+                const fullDateStr = `${dateStr} (${dayName})`;
 
-                if (h3.innerText.trim() !== dateStr) {
-                    h3.innerText = dateStr;
+                if (h3.innerText.trim() !== fullDateStr) {
+                    h3.innerText = fullDateStr;
                     fetchClimaGlobal(h3.nextElementSibling);
                 }
             });
@@ -760,12 +772,15 @@
         }
 
         function addDia() {
-            let fecha = new Date().toISOString().split('T')[0];
+            let now = new Date();
+            let fecha = now.toISOString().split('T')[0];
+            const diasSemana = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+            let fullFecha = `${fecha} (${diasSemana[now.getDay()]})`;
             const id = "dia-" + Date.now();
             const html = `<div class="dia-container" id="${id}">
             <div class="bloque-dia-header" onclick="toggleDia(this)">
                 <div class="header-info-wrapper">
-                    <h3 contenteditable="true" onclick="event.stopPropagation()" onblur="formatearTexto(this); fetchClimaGlobal(this.nextElementSibling); recalcularDiaCompleto(this); actualizarFechasItinerario();">${fecha}</h3>
+                    <h3 contenteditable="true" onclick="event.stopPropagation()" onblur="formatearTexto(this); fetchClimaGlobal(this.nextElementSibling); recalcularDiaCompleto(this); actualizarFechasItinerario();">${fullFecha}</h3>
                     <div class="nombre-dia-personalizado" contenteditable="true" onblur="formatearTexto(this); fetchClimaGlobal(this); recalcularDiaCompleto(this)" onclick="event.stopPropagation()">Destino...</div>
                 </div>
                 <div class="clima-wrapper"></div>
@@ -843,7 +858,7 @@
         async function fetchClimaGlobal(el) {
             const container = el.closest('.dia-container');
             const nombre = container.querySelector('.nombre-dia-personalizado').innerText.trim();
-            const fechaStr = container.querySelector('h3').innerText.trim();
+            const fechaStr = container.querySelector('h3').innerText.trim().split(' ')[0];
             const wrapper = container.querySelector('.clima-wrapper');
             if (!nombre || nombre === "Destino...") return;
             try {
@@ -1309,6 +1324,7 @@
             } catch (e) {
                 console.error("Error en migración:", e);
             }
+            actualizarFechasItinerario();
             actualizarCostes();
         }
 
