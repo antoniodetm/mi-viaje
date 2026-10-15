@@ -525,9 +525,7 @@
         <div class="main-nav">
             <div class="nav-row-quad">
                 <button class="action-btn" style="background:#007aff" onclick="guardarEnFirebase()">SUBIR FB</button>
-                <button class="action-btn" style="background:#34c759"
-                    onclick="document.getElementById('import-file').click()">ABRIR</button>
-                <input type="file" id="import-file" style="display:none" accept=".json" onchange="importarDatos(this)">
+                <button class="action-btn" style="background:#34c759" onclick="gestionarMapaPrincipal()">MAPA</button>
                 <button id="sync-btn" class="action-btn" style="background:#5856d6"
                     onclick="cargarDesdeFirebase()">CARGAR FB</button>
                 <button class="action-btn" style="background:#1c1c1e" onclick="addDia()">+ DÍA</button>
@@ -1129,6 +1127,31 @@
             } else {
                 if (confirm("¿Abrir?")) window.open(url, "_blank");
                 else { let n = prompt("Editar:", url); if (n !== null) { el.dataset.url = n; el.setAttribute('data-url', n); n === "" ? el.classList.remove('con-url') : el.classList.add('con-url'); saveAll(); } }
+            }
+        }
+
+        function gestionarMapaPrincipal() {
+            let url = localStorage.getItem('mapaPrincipal') || "";
+            if (!url) {
+                let n = prompt("Introduce la URL de My Maps:");
+                if (n) {
+                    localStorage.setItem('mapaPrincipal', n);
+                    window.open(n, "_blank");
+                }
+            } else {
+                if (confirm("¿Abrir mapa?\n\n(Aceptar para abrir, Cancelar para editar la URL)")) {
+                    window.open(url, "_blank");
+                } else {
+                    let n = prompt("Editar URL de My Maps:", url);
+                    if (n !== null) {
+                        if (n === "") {
+                            localStorage.removeItem('mapaPrincipal');
+                        } else {
+                            localStorage.setItem('mapaPrincipal', n);
+                            window.open(n, "_blank");
+                        }
+                    }
+                }
             }
         }
 
