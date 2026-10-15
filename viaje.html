@@ -626,6 +626,7 @@
             const datos = {
                 titulo: document.getElementById('titulo-viaje').innerText,
                 cuerpo: document.getElementById('itinerario').innerHTML,
+                mapaPrincipal: localStorage.getItem('mapaPrincipal') || "",
                 uid: user.uid
             };
 
@@ -677,7 +678,11 @@
 
         function exportarDatos() {
             saveAll();
-            const d = { titulo: document.getElementById('titulo-viaje').innerText, cuerpo: document.getElementById('itinerario').innerHTML };
+            const d = {
+                titulo: document.getElementById('titulo-viaje').innerText,
+                cuerpo: document.getElementById('itinerario').innerHTML,
+                mapaPrincipal: localStorage.getItem('mapaPrincipal') || ""
+            };
             const blob = new Blob([JSON.stringify(d)], { type: "application/json" });
             const a = document.createElement('a');
             a.href = URL.createObjectURL(blob);
@@ -689,6 +694,9 @@
             if (!d) return;
             document.getElementById('itinerario').innerHTML = d.cuerpo || "";
             document.getElementById('titulo-viaje').innerText = d.titulo || "Mi Itinerario";
+            if (d.mapaPrincipal) {
+                localStorage.setItem('mapaPrincipal', d.mapaPrincipal);
+            }
             saveAll();
             actualizarEfectos();
         }
