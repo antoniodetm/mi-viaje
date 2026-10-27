@@ -1,8 +1,8 @@
 {
     "rules": {
         "itinerarios": {
+            ".read": true,
             "$itinerarioId": {
-                ".read": "true",
                 ".write": "auth != null",
                 ".validate": "newData.hasChildren(['titulo', 'cuerpo', 'uid']) && newData.child('titulo').isString() && newData.child('cuerpo').isString() && newData.child('uid').isString() && newData.child('titulo').val().length <= 100 && newData.child('cuerpo').val().length <= 1000000"
             }

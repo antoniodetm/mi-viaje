@@ -216,6 +216,18 @@
             border: 1px solid #c8e6c9;
         }
 
+        .doc-meta .badge-km {
+            display: inline-block;
+            background: #e5f2ff;
+            color: #007aff;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-weight: 700;
+            margin-top: 4px;
+            border: 1px solid #c8e1ff;
+            margin-left: 5px;
+        }
+
         /* CONTENIDO DE LOS DÍAS */
         .dias-container {
             display: flex;
@@ -716,11 +728,6 @@
                 <input type="checkbox" id="chk-notes" checked onchange="toggleOpcion('hide-notes', !this.checked)">
                 <span>Notas</span>
             </label>
-
-            <label class="toolbar-checkbox">
-                <input type="checkbox" id="chk-check" checked onchange="toggleOpcion('hide-checkboxes', !this.checked)">
-                <span>Casillas [ ]</span>
-            </label>
         </div>
     </div>
 
@@ -773,21 +780,25 @@
             firebase.initializeApp(firebaseConfig);
             database = firebase.database();
             auth = firebase.auth();
-
-            // Autenticación anónima para cumplir con las reglas de seguridad de Firebase
-            auth.signInAnonymously().catch((error) => {
-                console.error("Error en autenticación anónima:", error.message);
-            });
         } catch (e) {
             console.error("Error al inicializar Firebase:", e);
         }
 
         // Al cargar la página
-        window.addEventListener('DOMContentLoaded', () => {
+        window.addEventListener('DOMContentLoaded', async () => {
             const today = new Date();
             const dateStr = today.toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' });
             document.getElementById('doc-fecha-emision').innerText = `Impreso: ${dateStr}`;
             document.getElementById('footer-date').innerText = dateStr;
+
+            // Esperar un momento a que Firebase se inicialice y autentique
+            try {
+                if (auth) {
+                    await auth.signInAnonymously();
+                }
+            } catch (e) {
+                console.error("Error en auth previa:", e);
+            }
 
             // Descargar itinerarios de Firebase
             cargarListaDesdeFirebase();
@@ -812,7 +823,8 @@
             `;
 
             try {
-                const snapshot = await database.ref('itinerarios').get();
+                const snapshot = await database.ref('itinerarios').once('value');
+                console.log("Snapshot recibido:", snapshot.val());
                 if (!snapshot.exists()) {
                     selectEl.innerHTML = '<option value="">(Sin itinerarios en Firebase)</option>';
                     mostrarError("No hay itinerarios guardados en la base de datos de Firebase.");
@@ -831,10 +843,12 @@
                 selectEl.innerHTML = '';
                 keys.forEach(key => {
                     const item = itinerariosCargados[key];
-                    const opt = document.createElement('option');
-                    opt.value = key;
-                    opt.textContent = `${item.titulo || key} (${key})`;
-                    selectEl.appendChild(opt);
+                    if (item && typeof item === 'object') {
+                        const opt = document.createElement('option');
+                        opt.value = key;
+                        opt.textContent = `${item.titulo || key} (${key})`;
+                        selectEl.appendChild(opt);
+                    }
                 });
 
                 // Seleccionar y renderizar el primero por defecto
@@ -844,6 +858,7 @@
 
             } catch (err) {
                 console.error("Error Firebase:", err);
+                alert(`Error al conectar con Firebase: ${err.message}`);
                 selectEl.innerHTML = '<option value="">Error al cargar</option>';
                 mostrarError(`Error al conectar con Firebase: ${err.message}`);
             }
@@ -870,7 +885,7 @@
             }
 
             try {
-                const snapshot = await database.ref('itinerarios/' + cleanId).get();
+                const snapshot = await database.ref('itinerarios/' + cleanId).once('value');
                 if (snapshot.exists()) {
                     const data = snapshot.val();
                     itinerariosCargados[cleanId] = data;
@@ -917,8 +932,10 @@
             let totalParadas = 0;
             let totalDias = diaContainers.length;
             let totalCosteViaje = 0;
+            let totalKmViaje = 0;
 
             diaContainers.forEach((diaEl, index) => {
+                let totalCosteDia = 0;
                 // Extraer datos del día
                 const fechaEl = diaEl.querySelector('.header-info-wrapper h3');
                 const destinoEl = diaEl.querySelector('.nombre-dia-personalizado');
@@ -944,11 +961,16 @@
 
                     // Hora de llegada
                     const timeInput = bloque.querySelector('.time-sidebar input[type="time"]') || bloque.querySelector('.header-evento-color input[type="time"]');
+                    const timeSpan = bloque.querySelector('.llegada-estimada-sidebar');
                     let horaLlegada = timeInput ? (timeInput.getAttribute('value') || timeInput.value || '') : '';
 
-                    // Si no hay hora fija, usar la estimada del dataset si existe
-                    if (!horaLlegada && bloque.dataset.llegadaEstimada) {
-                        horaLlegada = bloque.dataset.llegadaEstimada;
+                    // Si no hay hora fija, usar la estimada del span o del dataset
+                    if (!horaLlegada) {
+                        if (timeSpan && timeSpan.innerText.trim()) {
+                            horaLlegada = timeSpan.innerText.trim();
+                        } else if (bloque.dataset.llegadaEstimada) {
+                            horaLlegada = bloque.dataset.llegadaEstimada;
+                        }
                     }
 
                     // Nombre / Título del evento
@@ -974,23 +996,30 @@
                         const colLabel = fila.querySelector('.col-label');
                         const labelText = colLabel ? colLabel.innerText.trim().toLowerCase() : '';
 
-                        if (labelText.includes('lugar')) {
+                        if (labelText.includes('lugar') || labelText.includes('📍')) {
                             const dataCol = fila.querySelector('.col-data');
                             if (dataCol) lugar = dataCol.innerText.trim();
                             const btnMapa = fila.querySelector('.btn-mapa');
                             if (btnMapa && btnMapa.getAttribute('data-url')) {
                                 mapaUrl = btnMapa.getAttribute('data-url');
                             }
-                        } else if (labelText.includes('trayecto')) {
+                        } else if (labelText.includes('trayecto') || labelText.includes('🚗')) {
                             const dataCol = fila.querySelector('.col-data');
-                            if (dataCol) trayecto = dataCol.innerText.trim();
-                        } else if (labelText.includes('duración') || labelText.includes('duracion')) {
+                            if (dataCol) {
+                                trayecto = dataCol.innerText.trim();
+                                if (trayecto.includes('km')) {
+                                    totalKmViaje += parseFloat(trayecto.replace(' km', '').replace(',', '.')) || 0;
+                                } else if (trayecto.includes(' m')) {
+                                    totalKmViaje += (parseFloat(trayecto.replace(' m', '').replace(',', '.')) || 0) / 1000;
+                                }
+                            }
+                        } else if (labelText.includes('duración') || labelText.includes('duracion') || labelText.includes('⏳')) {
                             const inputDur = fila.querySelector('input');
                             if (inputDur) duracion = inputDur.getAttribute('value') || inputDur.value || '';
-                        } else if (labelText.includes('salida')) {
+                        } else if (labelText.includes('salida') || labelText.includes('🏁')) {
                             const inputSal = fila.querySelector('input[type="time"]');
                             if (inputSal) horaSalida = inputSal.getAttribute('value') || inputSal.value || '';
-                        } else if (labelText.includes('nota')) {
+                        } else if (labelText.includes('nota') || labelText.includes('📝')) {
                             const notasCont = fila.querySelector('.notas-container');
                             if (notasCont) {
                                 const notaItems = notasCont.querySelectorAll('.nota-item');
@@ -1076,9 +1105,6 @@
 
                         return `
                             <tr>
-                                <td class="col-check">
-                                    <span class="print-checkbox"></span>
-                                </td>
                                 <td class="col-horario">
                                     ${horarioHtml}
                                 </td>
@@ -1102,7 +1128,6 @@
                         <table class="tabla-eventos">
                             <thead>
                                 <tr>
-                                    <th class="col-check"></th>
                                     <th>Horario</th>
                                     <th>Tipo</th>
                                     <th>Lugar / Parada</th>
@@ -1147,6 +1172,15 @@
                 document.querySelector('.doc-meta').appendChild(badgeCoste);
             }
             badgeCoste.innerText = `Presupuesto: ${totalCosteViaje.toFixed(2)} €`;
+
+            // Añadir o actualizar badge de km total
+            let badgeKm = document.querySelector('.badge-km');
+            if (!badgeKm) {
+                badgeKm = document.createElement('div');
+                badgeKm.className = 'badge-km';
+                document.querySelector('.doc-meta').appendChild(badgeKm);
+            }
+            badgeKm.innerText = `Recorrido: ${totalKmViaje.toFixed(1)} km`;
         }
 
         function mostrarError(mensaje) {
