@@ -437,6 +437,19 @@
             margin-right: 4px;
         }
 
+        .btn-ojo-nota {
+            cursor: pointer;
+            font-size: 16px;
+            margin-right: 4px;
+            opacity: 0.3;
+            transition: opacity 0.2s;
+        }
+
+        .btn-ojo-nota.con-imagen {
+            opacity: 1;
+            color: #007aff;
+        }
+
         .dia-coste-tag {
             background: #34c759;
             color: white;
@@ -488,6 +501,7 @@
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-storage-compat.js"></script>
     <script>
         // Configuración de tu proyecto de Firebase
         // REEMPLAZA ESTO con la configuración real de tu proyecto desde la consola de Firebase
@@ -505,6 +519,7 @@
         firebase.initializeApp(firebaseConfig);
         const database = firebase.database();
         const auth = firebase.auth();
+        const storage = firebase.storage();
 
         // Autenticación anónima para cumplir con las reglas de seguridad de Firebase
         auth.signInAnonymously().catch((error) => {
@@ -543,7 +558,7 @@
             style="text-align: center; margin-bottom: 10px; font-weight: 900; font-size: 18px; color: #1c1c1e; padding: 10px;">
             TOTAL KM: 0.0 km</div>
     </div>
-
+    <input type="file" id="input-imagen-nota" style="display:none" accept="image/*">
     <script>
         const weatherIcons = { 0: "☀️", 1: "🌤️", 2: "⛅", 3: "☁️", 45: "🌫️", 48: "🌫️", 51: "🌦️", 53: "🌦️", 55: "🌦️", 61: "🌧️", 63: "🌧️", 65: "🌧️", 71: "❄️", 73: "❄️", 75: "❄️", 77: "🌨️", 80: "🌦️", 81: "🌧️", 82: "🌧️", 95: "⛈️", 96: "⛈️", 99: "⛈️" };
         const geocodeCache = new Map();
@@ -848,16 +863,103 @@
             saveAll();
         }
 
-        function addNota(btn, texto = "", coste = "") {
+        function addNota(btn, texto = "", coste = "", imgUrl = "") {
             const container = btn.previousElementSibling;
-            const html = `<div class="nota-item">
+            const conImagenClass = imgUrl ? "con-imagen" : "";
+            const html = `<div class="nota-item" data-imagen="${imgUrl}">
             <div class="nota-texto" contenteditable="true" onblur="linkify(this)">${texto}</div>
+            <span class="btn-ojo-nota ${conImagenClass}" onclick="gestionarImagenNota(this)">👁️</span>
             <input type="number" class="nota-coste" step="0.01" placeholder="0" value="${coste}" oninput="actualizarCostes()" max="999">
             <span class="euro-symbol">€</span>
             <span class="btn-del-nota" onclick="this.parentElement.remove();actualizarCostes();">✕</span>
         </div>`;
             container.insertAdjacentHTML('beforeend', html);
             actualizarCostes();
+        }
+
+        async function gestionarImagenNota(el) {
+            const notaItem = el.closest('.nota-item');
+            const imgUrl = notaItem.dataset.imagen || "";
+
+            if (!imgUrl) {
+                // No hay imagen, subir una
+                subirImagenNota(notaItem);
+            } else {
+                // Hay imagen, mostrar opciones
+                const opcion = confirm("¿Qué deseas hacer con la imagen?\n\nACEPTAR para VER\nCANCELAR para BORRAR/EDITAR");
+                if (opcion) {
+                    window.open(imgUrl, '_blank');
+                } else {
+                    if (confirm("¿Quieres BORRAR la imagen actual? (Pulsa Cancelar para SUSTITUIRLA)")) {
+                        // Borrar
+                        if (confirm("¿Estás seguro de borrar la imagen de Firebase?")) {
+                            try {
+                                const storageRef = firebase.storage().refFromURL(imgUrl);
+                                await storageRef.delete();
+                                notaItem.dataset.imagen = "";
+                                notaItem.setAttribute('data-imagen', "");
+                                el.classList.remove('con-imagen');
+                                saveAll();
+                                alert("Imagen borrada.");
+                            } catch (error) {
+                                console.error("Error al borrar:", error);
+                                // A veces falla si el archivo no existe o ya se borró, limpiamos igual
+                                notaItem.dataset.imagen = "";
+                                notaItem.setAttribute('data-imagen', "");
+                                el.classList.remove('con-imagen');
+                                saveAll();
+                            }
+                        }
+                    } else {
+                        // Sustituir
+                        subirImagenNota(notaItem);
+                    }
+                }
+            }
+        }
+
+        function subirImagenNota(notaItem) {
+            const input = document.getElementById('input-imagen-nota');
+            const elOjo = notaItem.querySelector('.btn-ojo-nota');
+
+            input.onchange = async (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+
+                const originalText = elOjo.innerText;
+                elOjo.innerText = "⌛";
+
+                try {
+                    // Si ya había una imagen, intentamos borrarla antes
+                    const oldImgUrl = notaItem.dataset.imagen;
+                    if (oldImgUrl) {
+                        try {
+                            const oldRef = firebase.storage().refFromURL(oldImgUrl);
+                            await oldRef.delete();
+                        } catch (err) { console.warn("No se pudo borrar la imagen anterior:", err); }
+                    }
+
+                    const fileName = `notas/${Date.now()}_${file.name}`;
+                    const storageRef = storage.ref().child(fileName);
+
+                    const snapshot = await storageRef.put(file);
+                    const downloadURL = await snapshot.ref.getDownloadURL();
+
+                    notaItem.dataset.imagen = downloadURL;
+                    notaItem.setAttribute('data-imagen', downloadURL);
+                    elOjo.classList.add('con-imagen');
+                    saveAll();
+                    alert("Imagen subida con éxito.");
+                } catch (error) {
+                    console.error("Error al subir:", error);
+                    alert("Error al subir imagen: " + error.message);
+                } finally {
+                    elOjo.innerText = "👁️";
+                    input.value = ""; // Limpiar input
+                }
+            };
+
+            input.click();
         }
 
         async function fetchClimaGlobal(el) {
@@ -1203,6 +1305,13 @@
             document.querySelectorAll('input[type="time"]').forEach(i => i.value = i.getAttribute('value'));
             document.querySelectorAll('.btn-mapa').forEach(pin => { if (pin.getAttribute('data-url')) pin.classList.add('con-url'); });
             document.querySelectorAll('input[onblur="calcularSalida(this)"]').forEach(i => i.value = i.getAttribute('value') || '');
+            document.querySelectorAll('.nota-item').forEach(nota => {
+                const imgUrl = nota.dataset.imagen || nota.getAttribute('data-imagen');
+                if (imgUrl) {
+                    const ojo = nota.querySelector('.btn-ojo-nota');
+                    if (ojo) ojo.classList.add('con-imagen');
+                }
+            });
             actualizarEstructuraUI();
         }
 
@@ -1258,8 +1367,18 @@
                     }
                 });
 
-                // Migración de notas (asegurar campo coste y onclick)
+                // Migración de notas (asegurar campo coste, ojo e imagen y onclick)
                 document.querySelectorAll('.nota-item').forEach(nota => {
+                    const imgUrl = nota.getAttribute('data-imagen') || "";
+                    const conImagenClass = imgUrl ? "con-imagen" : "";
+
+                    if (!nota.querySelector('.btn-ojo-nota')) {
+                        const notaTexto = nota.querySelector('.nota-texto');
+                        if (notaTexto) {
+                            notaTexto.insertAdjacentHTML('afterend', `<span class="btn-ojo-nota ${conImagenClass}" onclick="gestionarImagenNota(this)">👁️</span>`);
+                        }
+                    }
+
                     if (!nota.querySelector('.nota-coste')) {
                         const delBtn = nota.querySelector('.btn-del-nota');
                         const htmlCoste = `<input type="number" class="nota-coste" step="0.01" placeholder="0" oninput="actualizarCostes()" max="999"><span class="euro-symbol">€</span>`;
