@@ -561,8 +561,35 @@
     <input type="file" id="input-imagen-nota" style="display:none" accept="image/*">
     <script>
         const weatherIcons = { 0: "☀️", 1: "🌤️", 2: "⛅", 3: "☁️", 45: "🌫️", 48: "🌫️", 51: "🌦️", 53: "🌦️", 55: "🌦️", 61: "🌧️", 63: "🌧️", 65: "🌧️", 71: "❄️", 73: "❄️", 75: "❄️", 77: "🌨️", 80: "🌦️", 81: "🌧️", 82: "🌧️", 95: "⛈️", 96: "⛈️", 99: "⛈️" };
+        const aemetToWmo = { "11": 0, "12": 1, "13": 2, "14": 3, "15": 3, "16": 3, "17": 2, "43": 51, "44": 51, "45": 61, "46": 61, "23": 51, "24": 61, "25": 61, "26": 61, "81": 45, "82": 45, "51": 95, "52": 95, "53": 95, "54": 95, "61": 95, "62": 95, "63": 95, "64": 95 };
+        const API_KEY_AEMET = 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJhbnRvbmlvZGV0bUBnbWFpbC5jb20iLCJqdGkiOiIzZTcxNTZmNC05YzZiLTQyMDMtYmE2YS0zZTRiYTAxMmQxNDUiLCJleHAiOjE3OTU1MDI1OTksImlzcyI6IkFFTUVUIiwiaWF0IjoxNzg2ODYyNTk5LCJ1c2VySWQiOiIzZTcxNTZmNC05YzZiLTQyMDMtYmE2YS0zZTRiYTAxMmQxNDUiLCJyb2xlIjoiIn0.PhW1cv27D88wKrZb2kFFP2NqQVmy23h35uiYjVTjqFY';
+        let municipiosCacheAemet = null;
         const geocodeCache = new Map();
         let lastRequestTime = 0;
+
+        async function _fetchAemetData(urlPeticion) {
+            try {
+                const resInicial = await fetch(urlPeticion);
+                const dataInicial = await resInicial.json();
+                if (dataInicial.estado === 200) {
+                    const resDatos = await fetch(dataInicial.datos);
+                    if (urlPeticion.includes('/maestro/municipios')) {
+                        const buffer = await resDatos.arrayBuffer();
+                        const decoder = new TextDecoder('windows-1252');
+                        return JSON.parse(decoder.decode(buffer));
+                    }
+                    return await resDatos.json();
+                }
+                return null;
+            } catch (e) { return null; }
+        }
+
+        async function getMunicipiosAemet() {
+            if (municipiosCacheAemet) return municipiosCacheAemet;
+            const url = `https://opendata.aemet.es/opendata/api/maestro/municipios?api_key=${API_KEY_AEMET}`;
+            municipiosCacheAemet = await _fetchAemetData(url);
+            return municipiosCacheAemet;
+        }
 
         async function throttledFetch(url) {
             const now = Date.now();
@@ -968,7 +995,37 @@
             const fechaStr = container.querySelector('h3').innerText.trim().split(' ')[0];
             const wrapper = container.querySelector('.clima-wrapper');
             if (!nombre || nombre === "Destino...") return;
+
             try {
+                const municipios = await getMunicipiosAemet();
+                if (!municipios) throw new Error("AEMET lista no disponible");
+
+                const normalizar = (str) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+                const nombreNorm = normalizar(nombre);
+                const mun = municipios.find(m => normalizar(m.nombre) === nombreNorm) ||
+                    municipios.find(m => normalizar(m.nombre).includes(nombreNorm));
+
+                if (mun) {
+                    const idMun = mun.id.replace('id', '');
+                    const prediccion = await _fetchAemetData(`https://opendata.aemet.es/opendata/api/prediccion/especifica/municipio/diaria/${idMun}/?api_key=${API_KEY_AEMET}`);
+
+                    if (prediccion && prediccion[0]) {
+                        const diaPred = prediccion[0].prediccion.dia.find(d => d.fecha.startsWith(fechaStr));
+                        if (diaPred) {
+                            const estadoCielo = diaPred.estadoCielo.find(e => e.periodo === "00-24") || diaPred.estadoCielo[0];
+                            const code = (estadoCielo.value || "11").replace('n', '');
+                            const wmoCode = aemetToWmo[code] || 0;
+                            const max = diaPred.temperatura.maxima;
+                            const min = diaPred.temperatura.minima;
+
+                            wrapper.innerHTML = `<span class="clima-icon" title="${estadoCielo.descripcion}">${weatherIcons[wmoCode] || "🌡️"}</span><div class="temp-row"><span style="color:#ff453a">${max}°</span><span style="color:#0a84ff">${min}°</span></div>`;
+                            saveAll();
+                            return;
+                        }
+                    }
+                }
+
+                // Fallback a Open-Meteo si no se encuentra en AEMET
                 const geo = await (await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(nombre)}&count=1&language=es&format=json`)).json();
                 if (geo.results && geo.results.length > 0) {
                     const { latitude, longitude } = geo.results[0];
@@ -978,9 +1035,12 @@
                     if (w.daily) wrapper.innerHTML = `<span class="clima-icon">${weatherIcons[w.daily.weathercode[0]] || "🌡️"}</span><div class="temp-row"><span style="color:#ff453a">${Math.round(w.daily.temperature_2m_max[0])}°</span><span style="color:#0a84ff">${Math.round(w.daily.temperature_2m_min[0])}°</span></div>`;
                     saveAll();
                 } else {
-                    wrapper.innerHTML = `<span style="font-size:10px; color:#ff453a">Ciudad no encontrada</span>`;
+                    wrapper.innerHTML = `<span style="font-size:10px; color:#ff453a">No encontrado</span>`;
                 }
-            } catch (e) { wrapper.innerHTML = "Err"; }
+            } catch (e) {
+                console.error("Clima Error:", e);
+                wrapper.innerHTML = "Err";
+            }
         }
 
         async function calcularDistancia(elLugar) {
